@@ -152,17 +152,27 @@ export const signup = async (req: Request, res: Response) => {
             expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
         });
 
+
         // set cookie
         res.cookie("refreshToken", refreshToken, {
             httpOnly: true,
             secure: process.env.NODE_ENV === "production",
-            sameSite: "strict",
+            sameSite: "lax",
+            path: "/",
+            maxAge: 1000 * 60 * 60 * 24 * 7 // 7 days
+        });
+
+        res.cookie("accessToken", accessToken, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === "production",
+            sameSite: "lax",
+            path: "/",
+            maxAge: 1000 * 60 * 15 // 15 minutes
         });
 
         // safe response
         res.status(201).json({
             status: "success",
-            accessToken,
             message: "Happy to join us :)",
             data: {
                 id: user._id,
@@ -224,7 +234,17 @@ export const login = async (req: Request, res: Response) => {
         res.cookie("refreshToken", refreshToken, {
             httpOnly: true,
             secure: process.env.NODE_ENV === "production",
-            sameSite: "strict",
+            sameSite: "lax",
+            path: "/",
+            maxAge: 1000 * 60 * 60 * 24 * 7 // 7 days
+        });
+
+        res.cookie("accessToken", accessToken, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === "production",
+            sameSite: "lax",
+            path: "/",
+            maxAge: 1000 * 60 * 15 // 15 minutes
         });
         const safeUser = {
             id: user._id,
@@ -234,7 +254,7 @@ export const login = async (req: Request, res: Response) => {
         };
         res.status(200).json({
             status: "success",
-            accessToken,
+            message: user?.name ? `Welcome home dear ${user.name}` : `Welcome home`,
             data: safeUser,
         });
     } catch (error: any) {
@@ -253,12 +273,17 @@ export const logout = async (req: any, res: Response) => {
         }
 
         await RefreshToken.findOneAndDelete({ token });
-
         res.clearCookie("refreshToken", {
             httpOnly: true,
-            secure: true,
-            sameSite: "strict",
-            path: "/"
+            secure: process.env.NODE_ENV === "production",
+            sameSite: "lax",
+            path: "/",
+        });
+        res.clearCookie("accessToken", {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === "production",
+            sameSite: "lax",
+            path: "/",
         });
 
         return res.status(200).json({

@@ -37,7 +37,9 @@ function SignupPage() {
         }
         signup(
             dataModified, {
+
             onSuccess: (data) => {
+                router.push("/")
                 toast.success(data.message)
             },
             onError: (error) => {

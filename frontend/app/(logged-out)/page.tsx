@@ -6,7 +6,6 @@ import { WatchIcon } from 'lucide-react'
 import Link from 'next/link'
 function Home() {
     const { user, loading, isAuthenticated } = useCurrentUser();
-
     if (loading) {
         return <div>Loading...</div>;
     }

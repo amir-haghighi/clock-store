@@ -85,7 +85,13 @@ export const changePassword = async (req: any, res: Response) => {
             res.clearCookie("refreshToken", {
                 httpOnly: true,
                 secure: true,
-                sameSite: "strict",
+                sameSite: "lax",
+                path: "/"
+            });
+            res.clearCookie("accessToken", {
+                httpOnly: true,
+                secure: true,
+                sameSite: "lax",
                 path: "/"
             });
         }

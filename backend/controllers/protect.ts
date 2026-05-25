@@ -1,47 +1,48 @@
 import type { NextFunction, Request, Response } from "express";
 import jwt from "jsonwebtoken";
 import { User } from "../models/userModel.js";
-
 export const protect = async (
     req: any,
     res: Response,
     next: NextFunction
 ) => {
     try {
-        // Authorization: Bearer TOKEN
-        const authHeader = req.headers.authorization;
-        // check header exists
-        if (!authHeader) {
+
+
+        // get token from http only cookie
+        const token = req.cookies.accessToken;
+
+        // check token exists
+        if (!token) {
             return res.status(401).json({
                 status: "fail",
                 message: "You are not logged in",
             });
         }
 
-        // check bearer format
-        if (!authHeader.startsWith("Bearer")) {
-            return res.status(401).json({
-                status: "fail",
-                message: "Invalid token format",
-            });
-        }
-
-        // extract token
-        const token = authHeader.split(" ")[1];
-
-        const decoded = await jwt.verify(
+        // verify token
+        const decoded: any = jwt.verify(
             token,
             process.env.JWT_SECRET!
         );
 
-        // attach user payload to request
-        const user = await User.findById(decoded.id)
-        console.log("user", user)
+        // find user
+        const user = await User.findById(decoded.id);
+
+        if (!user) {
+            return res.status(401).json({
+                status: "fail",
+                message: "User no longer exists",
+            });
+        }
+
+        // attach user to request
         req.user = user;
 
         next();
 
     } catch (error: any) {
+
         // token expired
         if (error.name === "TokenExpiredError") {
             return res.status(401).json({

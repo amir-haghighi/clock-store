@@ -24,8 +24,19 @@ export const refreshAccessToken = async (req: any, res: Response) => {
             { expiresIn: "15m" }
         );
 
+        res.cookie("accessToken", newAccessToken, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === "production",
+            sameSite: "lax",
+            path: "/",
+            maxAge: 1000 * 60 * 60 * 24 * 7 // 7 days
+        });
+
+
+
         res.json({
-            accessToken: newAccessToken,
+            status: "success",
+            message: "refresh token successful"
         });
     } catch (err) {
         res.status(401).json({ message: "Refresh failed" });
@@ -114,7 +125,7 @@ export const refreshRefreshToken = async (
         res.cookie("refreshToken", newRefreshToken, {
             httpOnly: true,
             secure: process.env.NODE_ENV === "production",
-            sameSite: "strict",
+            sameSite: "lax",
         });
 
         // send new access token
