@@ -4,10 +4,14 @@ import mongoose from "mongoose";
 import configDotenv from "dotenv";
 import cookieParser from "cookie-parser";
 import authRouter from "./routes/authRouter.js";
-
+import cors from "cors"
 const app = express();
 app.use(express.json());
 app.use(cookieParser());
+app.use(cors({
+    origin: "http://localhost:3000",
+    credentials: true
+}));
 
 configDotenv.config({ path: "./config.env" })
 app.use("/api/v1/users", userRouter)

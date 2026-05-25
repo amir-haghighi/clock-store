@@ -94,10 +94,10 @@ export const forgotPassword = async (req: any, res: Response) => {
 }
 export const signup = async (req: Request, res: Response) => {
     try {
-        const { name, email, password, passwordConfirm } = req.body;
+        const { name, email, password } = req.body;
 
         // validate required fields
-        if (!name || !email || !password || !passwordConfirm) {
+        if (!name || !email || !password) {
             return res.status(400).json({
                 status: "fail",
                 message: "missing required fields",
@@ -118,8 +118,7 @@ export const signup = async (req: Request, res: Response) => {
         const user = await User.create({
             name,
             email,
-            password,
-            passwordConfirm,
+            password
 
             // role intentionally omitted
         });
@@ -164,7 +163,8 @@ export const signup = async (req: Request, res: Response) => {
         res.status(201).json({
             status: "success",
             accessToken,
-            user: {
+            message: "Happy to join us :)",
+            data: {
                 id: user._id,
                 name: user.name,
                 email: user.email,
@@ -226,11 +226,16 @@ export const login = async (req: Request, res: Response) => {
             secure: process.env.NODE_ENV === "production",
             sameSite: "strict",
         });
-
+        const safeUser = {
+            id: user._id,
+            name: user.name,
+            email: user.email,
+            role: user.role
+        };
         res.status(200).json({
             status: "success",
             accessToken,
-            user,
+            data: safeUser,
         });
     } catch (error: any) {
         res.status(500).json({
@@ -244,9 +249,7 @@ export const logout = async (req: any, res: Response) => {
         const token = req.cookies?.refreshToken;
 
         if (!token) {
-            return res.status(401).json({
-                message: "Not logged in"
-            });
+            return res.status(200).json({ message: "Already logged out" });
         }
 
         await RefreshToken.findOneAndDelete({ token });

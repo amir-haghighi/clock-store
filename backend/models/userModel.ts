@@ -10,7 +10,6 @@ type AddressType = {
 export type UserType = {
     name: string;
     password: string;
-    passwordConfirm?: string | undefined;
     role: "user" | "admin";
     isVerified: boolean;
     email?: string;
@@ -33,19 +32,6 @@ const userSchema = new Schema<UserType>({
         required: [true, "required"],
         minLength: [3, "min length is 3!"],
         select: false
-    },
-    passwordConfirm: {
-        type: String,
-        required: [true, "required"],
-        minLength: [3, "min length is 3!"],
-        select: false,
-        // this only works on create and save !
-        validate: {
-            validator: function (this: any, el: string) {
-                return el === this.password;
-            },
-            message: "passwords are not the same",
-        },
     },
     role: {
         type: String,
@@ -86,7 +72,6 @@ userSchema.pre("save", async function () {
         return;
     }
     this.password = await bcrypt.hash(this.password, 12);
-    this.passwordConfirm = undefined;
     return
 });
 
