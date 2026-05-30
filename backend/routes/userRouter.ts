@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { getUsers, getMe, updateMe, changePassword } from "../controllers/userController.js";
 
-import { isUserAdmin, protect } from "../controllers/protect.js";
+import { isUserAdmin, protect } from "../controllers/protectController.js";
 
 const userRouter = Router();
 

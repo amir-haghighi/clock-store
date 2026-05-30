@@ -144,7 +144,7 @@ function SignupPage() {
                                     </Field>
                                 )}
                             />
-                            <Button type="submit" >Sign up</Button>
+                            <Button type="submit" >w</Button>
                         </FieldGroup>
 
                     </form>

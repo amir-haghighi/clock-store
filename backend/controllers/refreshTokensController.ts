@@ -1,19 +1,20 @@
 import type { NextFunction, Response } from "express";
 import { RefreshToken } from "../models/refreshTokenModel.js";
 import jwt, { type JwtPayload } from "jsonwebtoken";
+import type { ResType } from "../types/res.js";
 
-export const refreshAccessToken = async (req: any, res: Response) => {
+export const refreshAccessToken = async (req: any, res: ResType) => {
     try {
         const token = req.cookies.refreshToken;
 
         if (!token) {
-            return res.status(401).json({ message: "No refresh token" });
+            return res.status(401).json({ message: "No refresh token", status: "fail" });
         }
 
         const stored = await RefreshToken.findOne({ token });
 
         if (!stored) {
-            return res.status(401).json({ message: "Invalid refresh token" });
+            return res.status(401).json({ message: "Invalid refresh token", status: "fail" });
         }
 
         const decoded: any = jwt.verify(token, process.env.REFRESH_SECRET!);
@@ -39,14 +40,14 @@ export const refreshAccessToken = async (req: any, res: Response) => {
             message: "refresh token successful"
         });
     } catch (err) {
-        res.status(401).json({ message: "Refresh failed" });
+        res.status(401).json({ message: "Refresh failed", status: "fail" });
     }
 };
 
 
 export const refreshRefreshToken = async (
     req: any,
-    res: Response,
+    res: ResType,
     next: NextFunction
 ) => {
 
@@ -127,11 +128,16 @@ export const refreshRefreshToken = async (
             secure: process.env.NODE_ENV === "production",
             sameSite: "lax",
         });
+        res.cookie("accessToken", accessToken, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === "production",
+            sameSite: "lax",
+        });
 
         // send new access token
         return res.status(200).json({
             status: "success",
-            accessToken
+            message: "refreshed successfully"
         });
 
     } catch (error: any) {

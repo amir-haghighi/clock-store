@@ -3,6 +3,7 @@ import toast from 'react-hot-toast';
 import { Button } from '../ui/button'
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { useLogout } from '@/hooks/useLogout';
+import { LogOutIcon } from 'lucide-react';
 
 export function Logout() {
     const { mutate: logout } = useLogout()
@@ -18,8 +19,9 @@ export function Logout() {
         });
     }
     return (
-        <Button onClick={onLogoutHandle}>
-            log out
+        <Button onClick={onLogoutHandle} className='bg-muted text-foreground'>
+            <span> Log out</span>
+            <LogOutIcon />
         </Button>
     )
 }

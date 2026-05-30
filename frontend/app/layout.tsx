@@ -3,6 +3,7 @@ import { Geist, Geist_Mono, Poppins } from "next/font/google";
 import { Toaster } from 'react-hot-toast';
 import "./globals.css";
 import Providers from "@/app/Providers";
+import { Nav } from "@/components/nav/Nav";
 
 
 // const geistSans = Geist({
@@ -38,8 +39,10 @@ export default function RootLayout({
     >
 
       <body className="min-h-full flex flex-col">
+
         <Providers>
           <Toaster />
+          <Nav />
           {children}
         </Providers>
       </body>

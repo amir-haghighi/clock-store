@@ -1,10 +1,11 @@
-import type { Request, Response } from "express"
+import type { Request } from "express"
 import { User } from "../models/userModel.js"
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken"
 import { RefreshToken } from "../models/refreshTokenModel.js";
+import type { ResType } from "../types/res.js";
 
-export const changePasswordForgotten = async (req: any, res: Response) => {
+export const changePasswordForgotten = async (req: any, res: ResType) => {
 
     try {
         const { newPassword, passwordResetToken } = req.body;
@@ -59,7 +60,7 @@ export const changePasswordForgotten = async (req: any, res: Response) => {
 
 
 }
-export const forgotPassword = async (req: any, res: Response) => {
+export const forgotPassword = async (req: any, res: ResType) => {
 
     const email = req.body.email
 
@@ -83,16 +84,20 @@ export const forgotPassword = async (req: any, res: Response) => {
         await user.save()
         res.json({
             status: "success",
-            passwordResetToken: newPasswordResetToken,
-            message: `If account exists, reset instructions sent and the code will expires in ${expiresInMins}`
+            data: {
+                passwordResetToken: newPasswordResetToken,
+                passwordResetTokenExpiresIn: expiresInMins
+            },
+
+            message: `If account exists, reset instructions sent and the code will expires in ${expiresInMins} minutes`
         });
 
     } catch (error) {
-        res.status(401).json({ message: error.message ?? error });
+        res.status(401).json({ message: error.message ?? error, status: "fail" });
     }
 
 }
-export const signup = async (req: Request, res: Response) => {
+export const signup = async (req: Request, res: ResType) => {
     try {
         const { name, email, password } = req.body;
 
@@ -170,7 +175,7 @@ export const signup = async (req: Request, res: Response) => {
             maxAge: 1000 * 60 * 15 // 15 minutes
         });
 
-        // safe response
+        // safe ResType
         res.status(201).json({
             status: "success",
             message: "Happy to join us :)",
@@ -188,7 +193,7 @@ export const signup = async (req: Request, res: Response) => {
         });
     }
 };
-export const login = async (req: Request, res: Response) => {
+export const login = async (req: Request, res: ResType) => {
     try {
         const { email, password } = req.body;
 
@@ -264,12 +269,12 @@ export const login = async (req: Request, res: Response) => {
         });
     }
 };
-export const logout = async (req: any, res: Response) => {
+export const logout = async (req: any, res: ResType) => {
     try {
         const token = req.cookies?.refreshToken;
 
         if (!token) {
-            return res.status(200).json({ message: "Already logged out" });
+            return res.status(200).json({ message: "Already logged out", status: "fail" });
         }
 
         await RefreshToken.findOneAndDelete({ token });
@@ -287,12 +292,14 @@ export const logout = async (req: any, res: Response) => {
         });
 
         return res.status(200).json({
-            message: "Logged out successfully"
+            message: "Logged out successfully",
+            status: "fail"
         });
 
     } catch (err: any) {
         return res.status(500).json({
-            message: err.message
+            message: err.message,
+            status: "fail"
         });
     }
 };

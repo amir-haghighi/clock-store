@@ -1,9 +1,10 @@
 import type { NextFunction, Request, Response } from "express";
 import jwt from "jsonwebtoken";
 import { User } from "../models/userModel.js";
+import type { ResType } from "../types/res.js";
 export const protect = async (
     req: any,
-    res: Response,
+    res: ResType,
     next: NextFunction
 ) => {
     try {
@@ -65,8 +66,7 @@ export const protect = async (
         });
     }
 };
-export const isUserAdmin = (req: any, res: Response, next: NextFunction) => {
-    console.log(req.user)
+export const isUserAdmin = (req: any, res: ResType, next: NextFunction) => {
     req.user.role === "admin" ?
         next() :
         res.status(403).json({

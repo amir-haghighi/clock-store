@@ -17,7 +17,7 @@ const fetchMe = async (): Promise<User | null> => {
     return data;
 };
 export function useCurrentUser() {
-    const queryClient = useQueryClient();
+
 
     const query = useQuery({
         queryKey: ["me"],

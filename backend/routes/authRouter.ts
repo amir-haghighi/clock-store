@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { logout, login, signup, forgotPassword, changePasswordForgotten } from "../controllers/authControllers.js";
-import { refreshAccessToken } from "../controllers/refreshTokens.js";
+import { refreshAccessToken } from "../controllers/refreshTokensController.js";
 
 const authRouter = Router();
 

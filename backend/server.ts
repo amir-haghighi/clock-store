@@ -5,6 +5,8 @@ import configDotenv from "dotenv";
 import cookieParser from "cookie-parser";
 import authRouter from "./routes/authRouter.js";
 import cors from "cors"
+import productRouter from "./routes/productRouter.js";
+import orderRouter from "./routes/orderRouter.js";
 const app = express();
 
 app.use(express.json());
@@ -13,11 +15,13 @@ app.use(cors({
     origin: "http://localhost:3000",
     credentials: true
 }));
-
+app.set("query parser", "extended")
 
 configDotenv.config({ path: "./config.env" })
 app.use("/api/v1/users", userRouter)
 app.use("/api/v1/auth", authRouter)
+app.use("/api/v1/products", productRouter)
+app.use("/api/v1/order", orderRouter)
 
 mongoose
     .connect("mongodb://127.0.0.1:27017/clock-store")
