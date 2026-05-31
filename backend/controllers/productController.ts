@@ -3,6 +3,7 @@ import mongoose from "mongoose";
 import type { ResType } from "../types/res.js";
 import type { IProduct, IReview } from "../models/productSchema.js";
 import Product from "../models/productSchema.js";
+import { deleteTemp, moveTempToProducts } from "../utils/uploadsUtils.js";
 // ─── Helper ───────────────────────────────────────────────────────────────────
 
 const isValidObjectId = (id: string) => mongoose.Types.ObjectId.isValid(id);
@@ -16,15 +17,6 @@ const isValidObjectId = (id: string) => mongoose.Types.ObjectId.isValid(id);
  * صفحه‌بندی: page, limit
  */
 export const getProducts = async (req: Request, res: ResType) => {
-    let productImages = [];
-    console.log(req.files)
-    if (req.files) {
-        const files = req.files as Express.Multer.File[];
-
-        productImages = files.map(
-            file => `/uploads/products/${file.filename}`
-        );
-    }
     try {
         const {
             brand,
@@ -188,13 +180,9 @@ export const createProductReview = async (req: Request, res: ResType) => {
  */
 export const createProduct = async (req: Request, res: ResType) => {
     const files = req.files as Express.Multer.File[];
-
-    console.log(files);
-
     const imageUrls = files?.map(file => {
         return `/uploads/products/${file.filename}`;
     }) || [];
-
     try {
         const {
             title, slug, brand, watchModel, description,
@@ -226,7 +214,7 @@ export const createProduct = async (req: Request, res: ResType) => {
             specifications: specifications ?? {},
             isFeatured: isFeatured ?? false,
         });
-
+        moveTempToProducts(files)
         res.status(201).json({
             data: product,
             message: "The product created successfully",
@@ -234,6 +222,8 @@ export const createProduct = async (req: Request, res: ResType) => {
         });
 
     } catch (error: any) {
+        // 🧨 CLEANUP TMP FILES if anything fails
+        await deleteTemp(files)
         if (error.code === 11000) {
             return res.status(400).json({
                 message: "the slug is already chosen, change it",
