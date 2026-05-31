@@ -20,7 +20,7 @@ export interface IProduct extends Document {
     images: string[];
     updateRating(): void;
     price: number;
-    discountPercent?: number;     // درصد تخفیف — اگه ۰ باشه تخفیفی نیست
+    discountPrice?: number;     // قیمت تخفیف — اگه ۰ باشه تخفیفی نیست
     stock: number;
     category: "luxury" | "sport" | "casual" | "smart" | "classic";
     gender: "men" | "women" | "unisex";
@@ -109,7 +109,7 @@ const productSchema = new Schema<IProduct>(
             required: true,
             min: 0,
         },
-        discountPercent: {
+        discountPrice: {
             type: Number,
             min: 0,
             max: 100,
@@ -187,8 +187,8 @@ productSchema.index(
 
 // قیمت بعد از تخفیف
 productSchema.virtual("finalPrice").get(function () {
-    if (!this.discountPercent) return this.price;
-    return Math.round(this.price * (1 - this.discountPercent / 100));
+    if (!this.discountPrice) return this.price;
+    return (this.discountPrice);
 });
 
 productSchema.virtual("inStock").get(function () {

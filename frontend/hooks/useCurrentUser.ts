@@ -2,8 +2,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { API, User } from "./types";
 
 const fetchMe = async (): Promise<User | null> => {
-    console.log(`${API}/users/me`)
-    const res = await fetch(`${API}/users/me`, {
+    const res = await fetch(`${API}/api/v1/users/me`, {
         method: "GET",
         credentials: "include",
     });

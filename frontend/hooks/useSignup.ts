@@ -8,7 +8,7 @@ type SignupInput = {
 };
 
 const signupUser = async (data: SignupInput): Promise<any> => {
-    const res = await fetch(`${API}/auth/signup`, {
+    const res = await fetch(`${API}/api/v1/auth/signup`, {
         method: "POST",
         headers: {
             "Content-Type": "application/json",

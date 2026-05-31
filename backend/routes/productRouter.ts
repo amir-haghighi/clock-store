@@ -11,6 +11,7 @@ import {
     getProducts,
 } from "../controllers/productController.js";
 import { isUserAdmin, protect } from "../controllers/protectController.js";
+import { upload } from "../middlewares/multer.js";
 
 const router = Router();
 
@@ -62,7 +63,7 @@ router.post("/:id/reviews", protect, createProductReview);
  * POST /api/admin/products
  * ایجاد محصول جدید
  */
-router.post("/", protect, isUserAdmin, createProduct);
+router.post("/", protect, isUserAdmin, upload.array("images", 10), createProduct);
 
 /**
  * PUT /api/admin/products/:id

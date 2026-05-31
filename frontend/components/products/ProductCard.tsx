@@ -33,21 +33,22 @@ interface ProductCardProps {
 }
 
 export function ProductCard({ product }: ProductCardProps) {
-  const hasDiscount = product.discountPrice < product.price;
+  const hasDiscount = !!product?.discountPrice && product.discountPrice < product.price;
   const discountPercent = hasDiscount
     ? Math.round(((product.price - product.discountPrice) / product.price) * 100)
     : 0;
+  const src = `${process.env.NEXT_PUBLIC_API_URL}${product.images[0]}`;
 
   return (
-    <Card className="group flex flex-col overflow-hidden rounded-2xl border min-w-3xs max-w-xs  gap-0 border-zinc-200 bg-white shadow-sm transition-all duration-300 hover:shadow-lg hover:-translate-y-1 dark:border-zinc-800 dark:bg-zinc-900 pt-0">
+    <Card className="group mx-auto flex flex-col justify-center overflow-hidden rounded-2xl border w-52 h-100  gap-0 border-zinc-200 bg-white shadow-sm transition-all duration-300 hover:shadow-lg hover:-translate-y-1 dark:border-zinc-800 dark:bg-zinc-900 pt-0">
       {/* Image / Placeholder */}
-      <div className="relative h-36 w-full overflow-hidden bg-zinc-100 dark:bg-zinc-800">
+      <div className="relative h-100  w-full overflow-hidden bg-zinc-100 dark:bg-zinc-800">
         {product.images.length > 0 ? (
           <img
-            src={product.images[0]}
+            src={src}
             alt={product.title}
-            height={144}
-            className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+            height={100}
+            className="h-full  w-full object-covers transition-transform duration-500 group-hover:scale-105"
           />
         ) : (
           <div className="flex h-full w-full items-center justify-center">
@@ -128,7 +129,7 @@ export function ProductCard({ product }: ProductCardProps) {
 
         <div className="mt-3 flex items-baseline gap-2">
           <span className="text-xl font-bold text-zinc-900 dark:text-zinc-50">
-            ${product.discountPrice.toFixed(2)}
+            ${product.discountPrice}
           </span>
           {hasDiscount && (
             <span className="text-sm text-zinc-400 line-through">

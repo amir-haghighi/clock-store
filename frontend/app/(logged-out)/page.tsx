@@ -4,7 +4,7 @@
 import { ProductCard } from "@/components/products/ProductCard";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useProduct } from "@/hooks/useProducts";
+import { useFeaturedProducts } from "@/hooks/useProducts";
 import { PackageOpen, RefreshCw, AlertCircle } from "lucide-react";
 
 /* ---------- Loading skeleton ---------- */
@@ -25,8 +25,9 @@ function ProductSkeleton() {
 
 /* ---------- Products Page ---------- */
 export default function ProductsPage() {
-  const { products, error, isEmpty, loading, isFetching, refetch } = useProduct();
-  console.log(products?.data)
+  const { products, error, isEmpty, loading, isFetching, refetch } =
+    useFeaturedProducts();
+  console.log(error)
   return (
     <main className="min-h-screen">
       <div className="mx-auto w-screen px-4 py-12 sm:px-6 lg:px-8">
@@ -83,7 +84,7 @@ export default function ProductsPage() {
 
         {/* Loading skeleton grid */}
         {loading && (
-          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-4">
             {Array.from({ length: 8 }).map((_, i) => (
               <ProductSkeleton key={i} />
             ))}
@@ -116,10 +117,12 @@ export default function ProductsPage() {
 
         {/* Products grid */}
         {!loading && !error && !isEmpty && (
-          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {products.map((product) => (
-              <ProductCard key={product._id} product={product} />
-            ))}
+          <div className="grid gap-4  grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4  xl:grid-cols-6 2xl:grid-cols-7">
+            {isEmpty ? <p>no products found!</p>
+              : products.map((product) => (
+                <ProductCard key={product._id} product={product} />
+              ))
+            }
           </div>
         )}
       </div>

@@ -16,6 +16,15 @@ const isValidObjectId = (id: string) => mongoose.Types.ObjectId.isValid(id);
  * صفحه‌بندی: page, limit
  */
 export const getProducts = async (req: Request, res: ResType) => {
+    let productImages = [];
+    console.log(req.files)
+    if (req.files) {
+        const files = req.files as Express.Multer.File[];
+
+        productImages = files.map(
+            file => `/uploads/products/${file.filename}`
+        );
+    }
     try {
         const {
             brand,
@@ -65,6 +74,7 @@ export const getProducts = async (req: Request, res: ResType) => {
                 .select("-reviews"),
             Product.countDocuments(filter),
         ]);
+
 
         res.json({
             message: "getting data was successful",
@@ -127,6 +137,7 @@ export const getProductBySlug = async (req: Request, res: ResType) => {
  * ثبت نظر — فقط کاربر لاگین‌کرده
  */
 export const createProductReview = async (req: Request, res: ResType) => {
+
     try {
         const { rating, comment } = req.body;
 
@@ -176,38 +187,64 @@ export const createProductReview = async (req: Request, res: ResType) => {
  * ایجاد محصول جدید
  */
 export const createProduct = async (req: Request, res: ResType) => {
+    const files = req.files as Express.Multer.File[];
+
+    console.log(files);
+
+    const imageUrls = files?.map(file => {
+        return `/uploads/products/${file.filename}`;
+    }) || [];
+
     try {
         const {
             title, slug, brand, watchModel, description,
-            images, price, discountPercent,
-            stock, category, gender,
+            price, stock, category, gender,
             colors, specifications,
             isFeatured,
         } = req.body;
 
         const exists = await Product.findOne({ slug });
         if (exists) {
-            return res.status(400).json({ message: "This slug is already used", status: "fail" });
+            return res.status(400).json({
+                message: "This slug is already used",
+                status: "fail"
+            });
         }
 
         const product = await Product.create({
-            title, slug, brand, watchModel, description,
-            images,
+            title,
+            slug,
+            brand,
+            watchModel,
+            description,
+            images: imageUrls,
             price,
-            discountPercent: discountPercent ?? 0,
             stock,
-            category, gender,
+            category,
+            gender,
             colors: colors ?? [],
             specifications: specifications ?? {},
             isFeatured: isFeatured ?? false,
         });
 
-        res.status(201).json({ data: product, message: "THe product created successfully", status: "success" });
+        res.status(201).json({
+            data: product,
+            message: "The product created successfully",
+            status: "success"
+        });
+
     } catch (error: any) {
         if (error.code === 11000) {
-            return res.status(400).json({ message: "the slug is already chosen , change it", status: "fail" });
+            return res.status(400).json({
+                message: "the slug is already chosen, change it",
+                status: "fail"
+            });
         }
-        res.status(500).json({ message: error?.message || error, status: "fail" });
+
+        res.status(500).json({
+            message: error?.message || error,
+            status: "fail"
+        });
     }
 };
 
@@ -235,7 +272,7 @@ export const updateProduct = async (req: Request, res: ResType) => {
 
         const allowedFields = [
             "title", "slug", "brand", "watchModel", "description",
-            "images", "price", "discountPercent",
+            "images", "price", "discountPrice",
             "stock", "category", "gender",
             "colors", "specifications",
             "isFeatured", "isActive",
