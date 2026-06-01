@@ -71,9 +71,8 @@ export const getProducts = async (req: Request, res: ResType) => {
         res.json({
             message: "getting data was successful",
             status: "success",
-            data: {
-                products
-            },
+            data:
+                products,
             pagination: {
                 page: pageNum,
                 pages: Math.ceil(total / limitNum),

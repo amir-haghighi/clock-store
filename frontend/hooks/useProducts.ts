@@ -1,6 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { API } from "./types";
-
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 export interface ProductFilters {
@@ -90,11 +89,15 @@ export const useProducts = (filters: ProductFilters = {}) => {
  * GET /api/products/featured
  * محصولات ویژه صفحه اصلی
  */
-export const useFeaturedProducts = () => {
+
+export const useFeaturedProducts = (filters: {}) => {
+    // const params = new URLSearchParams(filters); 
     const query = useQuery({
-        queryKey: ["products", "featured"],
+        queryKey: ["products", "featured", filters],
         queryFn: async () => {
-            const res = await fetch(`${API}/api/v1/products/featured`, {
+            const params = new URLSearchParams(filters);
+            console.log(` ${params.toString()}`)
+            const res = await fetch(`${API}/api/v1/products/?${params.toString()}`, {
                 credentials: "include",
             });
             const data = await res.json();
@@ -104,7 +107,7 @@ export const useFeaturedProducts = () => {
         staleTime: 1000 * 60 * 10,
         retry: false,
     });
-
+    console.log(query.data)
     return {
         isEmpty: !query?.data?.data,
         products: query.data?.data ?? [],
@@ -136,7 +139,7 @@ export const useProductBySlug = (slug: string) => {
     });
 
     return {
-        product: query.data ?? null,
+        product: query.data ? query.data?.data : null,
         loading: query.isLoading,
         isFetching: query.isFetching,
         error: query.error,

@@ -8,12 +8,9 @@ import { LogIn, LogInIcon, LogsIcon, LucideLogIn } from 'lucide-react';
 
 export const Nav = () => {
     const { user, loading, isAuthenticated } = useCurrentUser();
-    if (loading) {
-        return <div>Loading...</div>;
-    }
 
     return (
-        <div className='sticky top-2 ml-auto mr-2   '>
+        <div className='sticky top-2 ml-auto mr-2 -mt-9'>
 
             {
                 !isAuthenticated ?

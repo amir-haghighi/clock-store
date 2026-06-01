@@ -6,28 +6,18 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useFeaturedProducts } from "@/hooks/useProducts";
 import { PackageOpen, RefreshCw, AlertCircle } from "lucide-react";
-
+import Loading from "./Loading";
+import { useSearchParams } from "next/navigation";
 /* ---------- Loading skeleton ---------- */
-function ProductSkeleton() {
-  return (
-    <div className="flex flex-col overflow-hidden rounded-2xl border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900">
-      <Skeleton className="h-52 w-full rounded-none" />
-      <div className="space-y-3 p-4">
-        <Skeleton className="h-4 w-3/4" />
-        <Skeleton className="h-3 w-1/2" />
-        <Skeleton className="h-3 w-full" />
-        <Skeleton className="h-3 w-5/6" />
-        <Skeleton className="mt-4 h-9 w-full rounded-xl" />
-      </div>
-    </div>
-  );
-}
 
 /* ---------- Products Page ---------- */
 export default function ProductsPage() {
+  const searchParams = useSearchParams()
+  const filters = Object.fromEntries(searchParams.entries());
   const { products, error, isEmpty, loading, isFetching, refetch } =
-    useFeaturedProducts();
-  console.log(error)
+    useFeaturedProducts(filters);
+
+
   return (
     <main className="min-h-screen">
       <div className="mx-auto w-screen px-4 py-12 sm:px-6 lg:px-8">
@@ -84,9 +74,9 @@ export default function ProductsPage() {
 
         {/* Loading skeleton grid */}
         {loading && (
-          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-4">
+          <div className="grid grid-cols-1 gap-0 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-4">
             {Array.from({ length: 8 }).map((_, i) => (
-              <ProductSkeleton key={i} />
+              <Loading key={i} />
             ))}
           </div>
         )}
@@ -117,7 +107,7 @@ export default function ProductsPage() {
 
         {/* Products grid */}
         {!loading && !error && !isEmpty && (
-          <div className="grid gap-4  grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4  xl:grid-cols-6 2xl:grid-cols-7">
+          <div className="grid gap-0   grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4  xl:grid-cols-5 2xl:grid-cols-6">
             {isEmpty ? <p>no products found!</p>
               : products.map((product) => (
                 <ProductCard key={product._id} product={product} />

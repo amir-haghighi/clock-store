@@ -9,8 +9,6 @@ const fetchMe = async (): Promise<User | null> => {
 
     const data = await res.json();
 
-    console.log("res data:", data);
-
     if (!res.ok) return null;
 
     return data;
