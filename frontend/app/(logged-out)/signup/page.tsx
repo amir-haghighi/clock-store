@@ -62,7 +62,7 @@ function SignupPage() {
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <form id="form-rhf-demo" onSubmit={form.handleSubmit(onSubmit)}>
+                    <form id="form-rhf" onSubmit={form.handleSubmit(onSubmit)}>
                         <FieldGroup>
                             <Controller
                                 name="name"
@@ -144,13 +144,13 @@ function SignupPage() {
                                     </Field>
                                 )}
                             />
-                            <Button type="submit" >w</Button>
+                            <Button type="submit" >Sign up</Button>
                         </FieldGroup>
 
                     </form>
                 </CardContent>
 
-                <CardFooter className='justify-between'>
+                <CardFooter className='justify-between '>
                     <small>Already have an account ? </small>
                     <Button asChild variant={"outline"} size="sm">
                         <Link href="/login">Log in</Link>

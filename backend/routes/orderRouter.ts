@@ -1,9 +1,24 @@
-import { Router } from "express"
-import { getOrder, postOrder } from "../controllers/orderController.js"
 
-const orderRouter = Router()
+import express from "express";
+import {
+    createOrder,
+    getMyOrders,
+    getOrderById,
+    cancelOrder,
+    updateOrderStatus,
+} from "../controllers/orderController.js";
+import { isUserAdmin, protect } from "../controllers/protectController.js"; ``
 
+const orderRouter = express.Router();
 
-orderRouter.route("/").get(getOrder).post(postOrder)
+// USER
+orderRouter.post("/", protect, createOrder);
+orderRouter.get("/my-orders", protect, getMyOrders);
+orderRouter.get("/:id", protect, getOrderById);
+orderRouter.patch("/:id/cancel", protect, cancelOrder);
+
+// ADMIN
+orderRouter.patch("/:id/status", protect, isUserAdmin, updateOrderStatus);
+
 
 export default orderRouter

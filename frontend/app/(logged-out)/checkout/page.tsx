@@ -1,10 +1,13 @@
 "use client";
-
 import { useState } from "react";
 import Link from "next/link";
+import { Controller, useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { Input } from "@/components/ui/input";
 import {
     ChevronLeft,
     ChevronRight,
@@ -15,34 +18,39 @@ import {
     Check,
     Lock,
     Loader2,
+    ExternalLink,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import type { CartItem } from "@/app/cart/page";
+import { CartItem } from "../cart/page";
+import { Field, FieldError, FieldLabel } from "@/components/ui/field";
+import { useUser } from "@/hooks/useUser";
+import Modal from "@/components/modal/modal";
+import { useRouter } from "next/navigation";
+import LoginSignup from "@/components/loginSignup/LoginSignup";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
-type Step = "shipping" | "payment" | "review";
+type Step = "shipping" | "review";
 
-interface ShippingForm {
-    firstName: string;
-    lastName: string;
-    email: string;
-    phone: string;
-    address: string;
-    city: string;
-    state: string;
-    zip: string;
-    country: string;
-}
+// ── Zod schema — mirrors IShippingAddress (country commented out in model) ────
 
-interface PaymentForm {
-    cardNumber: string;
-    cardName: string;
-    expiry: string;
-    cvv: string;
-}
+const shippingSchema = z.object({
+    fullName: z
+        .string()
+        .min(3, "Full name must be at least 3 characters")
+        .max(80, "Full name is too long"),
+    city: z.string().min(2, "City is required").max(60),
+    address: z.string().min(10, "Address must be at least 10 characters").max(200),
+    postalCode: z
+        .string()
+        .regex(/^\d{10}$/, "Postal code must be exactly 10 digits")
+        .optional()
+        .or(z.literal("")),
+});
 
-// ── Mock cart (replace with your cart context) ────────────────────────────────
+type ShippingFormValues = z.infer<typeof shippingSchema>;
+
+// ── Mock cart (replace with your cart context / store) ────────────────────────
 
 const MOCK_ITEMS: CartItem[] = [
     {
@@ -71,99 +79,110 @@ const MOCK_ITEMS: CartItem[] = [
     },
 ];
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
+// ── Step config ───────────────────────────────────────────────────────────────
 
 const STEPS: { key: Step; label: string; icon: typeof User }[] = [
     { key: "shipping", label: "Shipping", icon: MapPin },
-    { key: "payment", label: "Payment", icon: CreditCard },
-    { key: "review", label: "Review", icon: Check },
+    { key: "review", label: "Review & Pay", icon: CreditCard },
 ];
-
-function formatCard(v: string) {
-    return v.replace(/\D/g, "").slice(0, 16).replace(/(.{4})/g, "$1 ").trim();
-}
-function formatExpiry(v: string) {
-    const d = v.replace(/\D/g, "").slice(0, 4);
-    return d.length > 2 ? `${d.slice(0, 2)}/${d.slice(2)}` : d;
-}
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export default function CheckoutPage() {
+    const router = useRouter()
+    const { user } = useUser()
+    console.log({ user })
+    if (!user) {
+
+        return (
+            <Modal open={!user} onOpenChange={(a) => router.push("/order")} >
+                <LoginSignup >
+                    <div className="mx-auto">
+
+                        <p className="text-lg">for checking out you should first sing in </p>
+                    </div>
+
+                </LoginSignup>
+            </Modal>
+        )
+    }
     const items = MOCK_ITEMS;
     const API = process.env.NEXT_PUBLIC_API_URL ?? "";
 
     const [step, setStep] = useState<Step>("shipping");
-    const [placing, setPlacing] = useState(false);
-    const [placed, setPlaced] = useState(false);
+    const [redirecting, setRedirecting] = useState(false);
+    // Saved shipping data to show on review step
+    const [savedShipping, setSavedShipping] = useState<ShippingFormValues | null>(null);
 
-    const [shipping, setShipping] = useState<ShippingForm>({
-        firstName: "",
-        lastName: "",
-        email: "",
-        phone: "",
-        address: "",
-        city: "",
-        state: "",
-        zip: "",
-        country: "United States",
+    const form = useForm<ShippingFormValues>({
+        resolver: zodResolver(shippingSchema),
+        defaultValues: {
+            city: "",
+            address: "",
+            postalCode: "",
+        },
+        mode: "onTouched",
     });
 
-    const [payment, setPayment] = useState<PaymentForm>({
-        cardNumber: "",
-        cardName: "",
-        expiry: "",
-        cvv: "",
-    });
-
-    // totals
+    // ── Totals ───────────────────────────────────────────────────────────────
     const effectivePrice = (it: CartItem) =>
         it.discountPrice && it.discountPrice > 0 ? it.discountPrice : it.price;
-    const subtotal = items.reduce((s, it) => s + effectivePrice(it) * it.quantity, 0);
-    const shippingCost = subtotal >= 500 ? 0 : 15;
-    const total = subtotal + shippingCost;
+    const itemsPrice = items.reduce((s, it) => s + effectivePrice(it) * it.quantity, 0);
+    const shippingPrice = itemsPrice >= 500 ? 0 : 15;
+    const taxPrice = parseFloat((itemsPrice * 0.09).toFixed(2)); // 9% VAT
+    const totalPrice = itemsPrice + shippingPrice + taxPrice;
 
     const stepIndex = STEPS.findIndex((s) => s.key === step);
 
-    const placeOrder = async () => {
-        setPlacing(true);
-        await new Promise((r) => setTimeout(r, 1800)); // simulate API
-        setPlacing(false);
-        setPlaced(true);
+    // ── Handlers ─────────────────────────────────────────────────────────────
+
+    const onShippingSubmit = (values: ShippingFormValues) => {
+        setSavedShipping(values);
+        setStep("review");
     };
 
-    // ── Order Confirmed ──────────────────────────────────────────────────────
-    if (placed) {
-        return (
-            <div className="min-h-screen bg-white dark:bg-zinc-950 flex flex-col items-center justify-center gap-6 px-4 text-center">
-                <div className="h-20 w-20 rounded-full bg-emerald-100 dark:bg-emerald-900/40 flex items-center justify-center">
-                    <Check className="h-9 w-9 text-emerald-600 dark:text-emerald-400" />
-                </div>
-                <div>
-                    <h2 className="text-3xl font-bold text-zinc-900 dark:text-zinc-50 tracking-tight">
-                        Order Placed!
-                    </h2>
-                    <p className="mt-2 text-zinc-400 text-sm max-w-xs mx-auto">
-                        Thank you, {shipping.firstName}. Your order is confirmed and will be
-                        shipped to {shipping.city}.
-                    </p>
-                </div>
-                <div className="flex gap-3">
-                    <Button asChild variant="outline" className="rounded-xl">
-                        <Link href="/">Home</Link>
-                    </Button>
-                    <Button asChild className="rounded-xl">
-                        <Link href="/products">Continue Shopping</Link>
-                    </Button>
-                </div>
-            </div>
-        );
-    }
+    const handlePayWithShaparak = async () => {
+        if (!savedShipping) return;
+        setRedirecting(true);
 
-    // ── Main ─────────────────────────────────────────────────────────────────
+        // TODO: replace with your actual API call
+        // POST /api/v1/orders  →  { authority, paymentUrl }
+        // then: window.location.href = paymentUrl
+        //
+        // const res = await fetch(`${API}/api/v1/orders`, {
+        //   method: "POST",
+        //   credentials: "include",
+        //   headers: { "Content-Type": "application/json" },
+        //   body: JSON.stringify({
+        //     items: items.map(it => ({
+        //       productId: it.id,
+        //       title: it.title,
+        //       image: it.image,
+        //       price: effectivePrice(it),
+        //       quantity: it.quantity,
+        //       selectedColor: it.color.name,
+        //     })),
+        //     shippingAddress: savedShipping,
+        //     paymentMethod: "shaparak",
+        //     itemsPrice,
+        //     shippingPrice,
+        //     taxPrice,
+        //     totalPrice,
+        //   }),
+        // });
+        // const { paymentUrl } = await res.json();
+        // window.location.href = paymentUrl;
+
+        await new Promise((r) => setTimeout(r, 1500)); // simulate redirect delay
+        setRedirecting(false);
+        alert("Redirecting to Shaparak payment gateway...");
+    };
+
+    // ── Main render ───────────────────────────────────────────────────────────
     return (
         <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950">
-            {/* Header */}
+
+            {/* ── Sticky header ── */}
             <div className="border-b border-zinc-100 dark:border-zinc-800 bg-white dark:bg-zinc-950 sticky top-0 z-10">
                 <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 h-14 flex items-center gap-3">
                     <Link
@@ -175,7 +194,7 @@ export default function CheckoutPage() {
                     <h1 className="text-base font-semibold text-zinc-900 dark:text-zinc-50 tracking-tight">
                         Checkout
                     </h1>
-                    <div className="ml-auto flex items-center gap-1 text-xs text-zinc-400">
+                    <div className="ml-auto flex items-center gap-1.5 text-xs text-zinc-400">
                         <Lock className="h-3 w-3" />
                         Secure checkout
                     </div>
@@ -184,7 +203,7 @@ export default function CheckoutPage() {
 
             <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 py-8 lg:py-12">
 
-                {/* Step indicator */}
+                {/* ── Step indicator ── */}
                 <div className="flex items-center justify-center mb-10">
                     {STEPS.map((s, i) => {
                         const done = i < stepIndex;
@@ -203,7 +222,7 @@ export default function CheckoutPage() {
                                         )}
                                     >
                                         {done ? (
-                                            <Check className={cn("h-4 w-4", "text-white dark:text-zinc-900")} />
+                                            <Check className="h-4 w-4 text-white dark:text-zinc-900" />
                                         ) : (
                                             <s.icon
                                                 className={cn(
@@ -217,7 +236,7 @@ export default function CheckoutPage() {
                                     </div>
                                     <span
                                         className={cn(
-                                            "text-xs font-medium",
+                                            "text-xs font-medium whitespace-nowrap",
                                             active
                                                 ? "text-zinc-900 dark:text-zinc-100"
                                                 : done
@@ -231,7 +250,7 @@ export default function CheckoutPage() {
                                 {i < STEPS.length - 1 && (
                                     <div
                                         className={cn(
-                                            "h-px w-16 sm:w-24 mx-2 mb-5 transition-colors duration-300",
+                                            "h-px w-20 sm:w-32 mx-3 mb-5 transition-colors duration-300",
                                             i < stepIndex
                                                 ? "bg-zinc-900 dark:bg-zinc-100"
                                                 : "bg-zinc-200 dark:bg-zinc-800"
@@ -245,234 +264,162 @@ export default function CheckoutPage() {
 
                 <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-8">
 
-                    {/* ── Left: form area ── */}
+                    {/* ── Left panel ── */}
                     <div>
 
-                        {/* SHIPPING FORM */}
+                        {/* STEP 1 — SHIPPING */}
                         {step === "shipping" && (
                             <FormCard title="Shipping Address" icon={MapPin}>
-                                <div className="grid grid-cols-2 gap-4">
-                                    <Field
-                                        label="First Name"
-                                        value={shipping.firstName}
-                                        onChange={(v) => setShipping({ ...shipping, firstName: v })}
-                                        placeholder="John"
-                                    />
-                                    <Field
-                                        label="Last Name"
-                                        value={shipping.lastName}
-                                        onChange={(v) => setShipping({ ...shipping, lastName: v })}
-                                        placeholder="Doe"
-                                    />
-                                    <Field
-                                        label="Email"
-                                        type="email"
-                                        value={shipping.email}
-                                        onChange={(v) => setShipping({ ...shipping, email: v })}
-                                        placeholder="john@example.com"
-                                        className="col-span-2"
-                                    />
-                                    <Field
-                                        label="Phone"
-                                        type="tel"
-                                        value={shipping.phone}
-                                        onChange={(v) => setShipping({ ...shipping, phone: v })}
-                                        placeholder="+1 (555) 000-0000"
-                                        className="col-span-2"
-                                    />
-                                    <Field
-                                        label="Address"
-                                        value={shipping.address}
-                                        onChange={(v) => setShipping({ ...shipping, address: v })}
-                                        placeholder="123 Main St"
-                                        className="col-span-2"
-                                    />
-                                    <Field
-                                        label="City"
-                                        value={shipping.city}
-                                        onChange={(v) => setShipping({ ...shipping, city: v })}
-                                        placeholder="New York"
-                                    />
-                                    <Field
-                                        label="State"
-                                        value={shipping.state}
-                                        onChange={(v) => setShipping({ ...shipping, state: v })}
-                                        placeholder="NY"
-                                    />
-                                    <Field
-                                        label="ZIP Code"
-                                        value={shipping.zip}
-                                        onChange={(v) => setShipping({ ...shipping, zip: v })}
-                                        placeholder="10001"
-                                    />
-                                    <Field
-                                        label="Country"
-                                        value={shipping.country}
-                                        onChange={(v) => setShipping({ ...shipping, country: v })}
-                                        placeholder="United States"
-                                    />
-                                </div>
-                                <Button
-                                    onClick={() => setStep("payment")}
-                                    disabled={
-                                        !shipping.firstName ||
-                                        !shipping.email ||
-                                        !shipping.address ||
-                                        !shipping.city
-                                    }
-                                    className="mt-6 w-full rounded-xl gap-2 bg-zinc-900 hover:bg-zinc-700 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-300 font-semibold h-11"
+
+                                <form
+                                    onSubmit={form.handleSubmit(onShippingSubmit)}
+                                    className="space-y-4"
                                 >
-                                    Continue to Payment
-                                    <ChevronRight className="h-4 w-4" />
-                                </Button>
-                            </FormCard>
-                        )}
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
 
-                        {/* PAYMENT FORM */}
-                        {step === "payment" && (
-                            <FormCard title="Payment Details" icon={CreditCard}>
-                                {/* Card preview */}
-                                <div className="h-36 rounded-2xl bg-gradient-to-br from-zinc-800 to-zinc-950 p-5 flex flex-col justify-between text-white mb-6 shadow-xl relative overflow-hidden">
-                                    <div className="absolute -right-6 -top-6 h-32 w-32 rounded-full bg-white/5" />
-                                    <div className="absolute -right-2 top-8 h-20 w-20 rounded-full bg-white/5" />
-                                    <div className="text-xs font-medium tracking-widest text-zinc-400">
-                                        CREDIT CARD
+                                        {/* City */}
+                                        <Controller
+                                            control={form.control}
+                                            name="city"
+                                            render={({ field, fieldState }) => (
+                                                <Field>
+                                                    <FieldLabel className="text-xs font-medium text-zinc-500 dark:text-zinc-400">
+                                                        City
+                                                    </FieldLabel>
+
+                                                    <Input
+                                                        placeholder="Tehran"
+                                                        {...field}
+                                                        className="h-10 rounded-xl border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 text-sm focus-visible:ring-zinc-300 dark:focus-visible:ring-zinc-700"
+                                                    />
+
+                                                    {fieldState.invalid && (
+                                                        <FieldError errors={[fieldState.error]} />
+                                                    )}
+                                                </Field>
+                                            )}
+                                        />
+
+                                        {/* Postal code */}
+                                        <Controller
+                                            control={form.control}
+                                            name="postalCode"
+                                            render={({ field, fieldState }) => (
+                                                <Field>
+                                                    <FieldLabel className="text-xs font-medium text-zinc-500 dark:text-zinc-400">
+                                                        Postal Code
+                                                        <span className="ml-1 text-zinc-300 dark:text-zinc-600 font-normal">
+                                                            (optional)
+                                                        </span>
+                                                    </FieldLabel>
+
+                                                    <Input
+                                                        placeholder="1234567890"
+                                                        maxLength={10}
+                                                        {...field}
+                                                        className="h-10 rounded-xl border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 text-sm focus-visible:ring-zinc-300 dark:focus-visible:ring-zinc-700"
+                                                    />
+
+                                                    {fieldState.invalid && (
+                                                        <FieldError errors={[fieldState.error]} />
+                                                    )}
+                                                </Field>
+                                            )}
+                                        />
+
+                                        {/* Address */}
+                                        <Controller
+                                            control={form.control}
+                                            name="address"
+                                            render={({ field, fieldState }) => (
+                                                <Field className="sm:col-span-2">
+                                                    <FieldLabel className="text-xs font-medium text-zinc-500 dark:text-zinc-400">
+                                                        Street Address
+                                                    </FieldLabel>
+
+                                                    <Input
+                                                        placeholder="Valiasr St, Alley 5, No. 12"
+                                                        {...field}
+                                                        className="h-10 rounded-xl border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 text-sm focus-visible:ring-zinc-300 dark:focus-visible:ring-zinc-700"
+                                                    />
+
+                                                    {fieldState.invalid && (
+                                                        <FieldError errors={[fieldState.error]} />
+                                                    )}
+                                                </Field>
+                                            )}
+                                        />
                                     </div>
-                                    <div>
-                                        <p className="text-lg font-bold tracking-widest font-mono">
-                                            {payment.cardNumber || "•••• •••• •••• ••••"}
-                                        </p>
-                                        <div className="flex justify-between mt-1 text-xs text-zinc-400">
-                                            <span>{payment.cardName || "CARD HOLDER"}</span>
-                                            <span>{payment.expiry || "MM/YY"}</span>
-                                        </div>
-                                    </div>
-                                </div>
 
-                                <div className="grid grid-cols-2 gap-4">
-                                    <Field
-                                        label="Card Number"
-                                        value={payment.cardNumber}
-                                        onChange={(v) =>
-                                            setPayment({ ...payment, cardNumber: formatCard(v) })
-                                        }
-                                        placeholder="1234 5678 9012 3456"
-                                        className="col-span-2"
-                                        maxLength={19}
-                                    />
-                                    <Field
-                                        label="Cardholder Name"
-                                        value={payment.cardName}
-                                        onChange={(v) =>
-                                            setPayment({ ...payment, cardName: v.toUpperCase() })
-                                        }
-                                        placeholder="JOHN DOE"
-                                        className="col-span-2"
-                                    />
-                                    <Field
-                                        label="Expiry Date"
-                                        value={payment.expiry}
-                                        onChange={(v) =>
-                                            setPayment({ ...payment, expiry: formatExpiry(v) })
-                                        }
-                                        placeholder="MM/YY"
-                                        maxLength={5}
-                                    />
-                                    <Field
-                                        label="CVV"
-                                        value={payment.cvv}
-                                        onChange={(v) =>
-                                            setPayment({
-                                                ...payment,
-                                                cvv: v.replace(/\D/g, "").slice(0, 4),
-                                            })
-                                        }
-                                        placeholder="•••"
-                                        maxLength={4}
-                                        type="password"
-                                    />
-                                </div>
-
-                                <div className="flex gap-3 mt-6">
                                     <Button
-                                        variant="outline"
-                                        onClick={() => setStep("shipping")}
-                                        className="rounded-xl h-11"
+                                        type="submit"
+                                        className="mt-2 w-full rounded-xl gap-2  transition-all duration-200 shadow-sm hover:shadow-xl"
                                     >
-                                        <ChevronLeft className="h-4 w-4 mr-1" />
-                                        Back
-                                    </Button>
-                                    <Button
-                                        onClick={() => setStep("review")}
-                                        disabled={
-                                            !payment.cardNumber ||
-                                            !payment.cardName ||
-                                            !payment.expiry ||
-                                            !payment.cvv
-                                        }
-                                        className="flex-1 rounded-xl gap-2 bg-zinc-900 hover:bg-zinc-700 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-300 font-semibold h-11"
-                                    >
-                                        Review Order
+                                        pay
                                         <ChevronRight className="h-4 w-4" />
                                     </Button>
-                                </div>
+                                </form>
                             </FormCard>
                         )}
 
-                        {/* REVIEW */}
-                        {step === "review" && (
-                            <FormCard title="Review Your Order" icon={Check}>
+                        {/* STEP 2 — REVIEW & PAY */}
+                        {step === "review" && savedShipping && (
+                            <FormCard title="Review & Pay" icon={CreditCard}>
+
                                 {/* Shipping summary */}
                                 <SummaryBlock
                                     title="Shipping to"
                                     onEdit={() => setStep("shipping")}
                                 >
-                                    <p className="text-sm text-zinc-700 dark:text-zinc-300 font-medium">
-                                        {shipping.firstName} {shipping.lastName}
+                                    <p className="text-sm font-semibold text-zinc-800 dark:text-zinc-200">
+                                        {savedShipping.fullName}
                                     </p>
-                                    <p className="text-sm text-zinc-500">{shipping.email}</p>
                                     <p className="text-sm text-zinc-500">
-                                        {shipping.address}, {shipping.city}, {shipping.state}{" "}
-                                        {shipping.zip}
+                                        {savedShipping.address}
+                                        {savedShipping.city && `, ${savedShipping.city}`}
+                                        {savedShipping.postalCode && ` — ${savedShipping.postalCode}`}
                                     </p>
                                 </SummaryBlock>
 
-                                <Separator className="my-4 dark:border-zinc-800" />
-
-                                {/* Payment summary */}
-                                <SummaryBlock title="Payment" onEdit={() => setStep("payment")}>
-                                    <p className="text-sm text-zinc-700 dark:text-zinc-300 font-medium flex items-center gap-2">
-                                        <CreditCard className="h-4 w-4 text-zinc-400" />
-                                        •••• •••• •••• {payment.cardNumber.slice(-4) || "••••"}
-                                    </p>
-                                    <p className="text-sm text-zinc-500">{payment.cardName}</p>
-                                </SummaryBlock>
-
-                                <Separator className="my-4 dark:border-zinc-800" />
+                                <Separator className="my-5 dark:border-zinc-800" />
 
                                 {/* Items */}
-                                <div className="space-y-3">
+                                <p className="text-xs font-semibold uppercase tracking-widest text-zinc-400 mb-3">
+                                    Items ({items.length})
+                                </p>
+                                <div className="space-y-3 mb-5">
                                     {items.map((it) => {
                                         const ep = effectivePrice(it);
                                         const imgSrc = it.image ? `${API}${it.image}` : null;
                                         return (
                                             <div key={it.id} className="flex items-center gap-3">
-                                                <div className="h-12 w-12 rounded-lg overflow-hidden bg-zinc-100 dark:bg-zinc-800 shrink-0">
+                                                <div className="relative h-12 w-12 rounded-xl overflow-hidden bg-zinc-100 dark:bg-zinc-800 shrink-0">
                                                     {imgSrc ? (
-                                                        <img src={imgSrc} alt={it.title} className="h-full w-full object-cover" />
+                                                        <img
+                                                            src={imgSrc}
+                                                            alt={it.title}
+                                                            className="h-full w-full object-cover"
+                                                        />
                                                     ) : (
                                                         <div className="flex h-full w-full items-center justify-center">
                                                             <Package className="h-5 w-5 text-zinc-300 dark:text-zinc-600" />
                                                         </div>
                                                     )}
+                                                    <Badge className="absolute -top-1 -right-1 h-4 w-4 p-0 flex items-center justify-center rounded-full bg-zinc-800 dark:bg-zinc-200 text-white dark:text-zinc-900 text-[10px] font-bold leading-none">
+                                                        {it.quantity}
+                                                    </Badge>
                                                 </div>
                                                 <div className="flex-1 min-w-0">
                                                     <p className="text-sm font-medium text-zinc-800 dark:text-zinc-200 truncate">
                                                         {it.title}
                                                     </p>
-                                                    <p className="text-xs text-zinc-400">
-                                                        Qty: {it.quantity} · {it.color.name}
-                                                    </p>
+                                                    <div className="flex items-center gap-1.5 mt-0.5">
+                                                        <span
+                                                            className="h-2.5 w-2.5 rounded-full border border-zinc-200 dark:border-zinc-700"
+                                                            style={{ backgroundColor: it.color.hex }}
+                                                        />
+                                                        <p className="text-xs text-zinc-400">{it.color.name}</p>
+                                                    </div>
                                                 </div>
                                                 <span className="text-sm font-semibold text-zinc-900 dark:text-zinc-50 shrink-0">
                                                     ${(ep * it.quantity).toFixed(2)}
@@ -482,29 +429,77 @@ export default function CheckoutPage() {
                                     })}
                                 </div>
 
-                                <div className="flex gap-3 mt-6">
+                                <Separator className="mb-5 dark:border-zinc-800" />
+
+                                {/* Price breakdown */}
+                                <div className="space-y-2 text-sm mb-6">
+                                    <div className="flex justify-between text-zinc-500">
+                                        <span>Items</span>
+                                        <span>${itemsPrice.toFixed(2)}</span>
+                                    </div>
+                                    <div className="flex justify-between text-zinc-500">
+                                        <span>Shipping</span>
+                                        <span
+                                            className={
+                                                shippingPrice === 0
+                                                    ? "text-emerald-600 dark:text-emerald-400 font-medium"
+                                                    : ""
+                                            }
+                                        >
+                                            {shippingPrice === 0 ? "Free" : `$${shippingPrice.toFixed(2)}`}
+                                        </span>
+                                    </div>
+                                    <div className="flex justify-between text-zinc-500">
+                                        <span>Tax (9%)</span>
+                                        <span>${taxPrice.toFixed(2)}</span>
+                                    </div>
+                                    <Separator className="!my-3 dark:border-zinc-800" />
+                                    <div className="flex justify-between font-bold text-zinc-900 dark:text-zinc-50 text-base">
+                                        <span>Total</span>
+                                        <span>${totalPrice.toFixed(2)}</span>
+                                    </div>
+                                </div>
+
+                                {/* Shaparak payment box */}
+                                <div className="rounded-2xl border border-zinc-100 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/50 p-4 mb-5 flex items-center gap-3">
+                                    <div className="h-10 w-10 rounded-xl bg-white dark:bg-zinc-800 border border-zinc-100 dark:border-zinc-700 flex items-center justify-center shrink-0 shadow-sm">
+                                        <CreditCard className="h-5 w-5 text-zinc-500" />
+                                    </div>
+                                    <div className="min-w-0">
+                                        <p className="text-sm font-semibold text-zinc-800 dark:text-zinc-200">
+                                            Pay with Shaparak
+                                        </p>
+                                        <p className="text-xs text-zinc-400 mt-0.5">
+                                            You'll be securely redirected to the payment gateway
+                                        </p>
+                                    </div>
+                                    <Check className="h-4 w-4 text-emerald-500 shrink-0 ml-auto" />
+                                </div>
+
+                                <div className="flex gap-3">
                                     <Button
                                         variant="outline"
-                                        onClick={() => setStep("payment")}
-                                        className="rounded-xl h-11"
+                                        onClick={() => setStep("shipping")}
+                                        className="rounded-xl h-11 px-4"
                                     >
                                         <ChevronLeft className="h-4 w-4 mr-1" />
                                         Back
                                     </Button>
                                     <Button
-                                        onClick={placeOrder}
-                                        disabled={placing}
-                                        className="flex-1 rounded-xl gap-2 bg-zinc-900 hover:bg-zinc-700 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-300 font-semibold h-11 shadow-md hover:shadow-lg"
+                                        onClick={handlePayWithShaparak}
+                                        disabled={redirecting}
+                                        className="flex-1 rounded-xl gap-2 bg-zinc-900 hover:bg-zinc-700 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-300 font-semibold h-11 shadow-md hover:shadow-lg transition-all duration-200"
                                     >
-                                        {placing ? (
+                                        {redirecting ? (
                                             <>
                                                 <Loader2 className="h-4 w-4 animate-spin" />
-                                                Placing Order…
+                                                Redirecting…
                                             </>
                                         ) : (
                                             <>
                                                 <Lock className="h-4 w-4" />
-                                                Place Order · ${total.toFixed(2)}
+                                                Pay ${totalPrice.toFixed(2)}
+                                                <ExternalLink className="h-3.5 w-3.5 opacity-60" />
                                             </>
                                         )}
                                     </Button>
@@ -513,7 +508,7 @@ export default function CheckoutPage() {
                         )}
                     </div>
 
-                    {/* ── Right: order summary ── */}
+                    {/* ── Right: sticky order summary ── */}
                     <div className="lg:sticky lg:top-20 h-fit">
                         <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-100 dark:border-zinc-800 p-5 flex flex-col gap-4">
                             <h2 className="text-xs font-semibold uppercase tracking-widest text-zinc-400">
@@ -528,13 +523,17 @@ export default function CheckoutPage() {
                                         <div key={it.id} className="flex items-center gap-3">
                                             <div className="relative h-11 w-11 rounded-lg overflow-hidden bg-zinc-100 dark:bg-zinc-800 shrink-0">
                                                 {imgSrc ? (
-                                                    <img src={imgSrc} alt={it.title} className="h-full w-full object-cover" />
+                                                    <img
+                                                        src={imgSrc}
+                                                        alt={it.title}
+                                                        className="h-full w-full object-cover"
+                                                    />
                                                 ) : (
                                                     <div className="flex h-full w-full items-center justify-center">
                                                         <Package className="h-4 w-4 text-zinc-300 dark:text-zinc-600" />
                                                     </div>
                                                 )}
-                                                <Badge className="absolute -top-1 -right-1 h-4 w-4 p-0 flex items-center justify-center rounded-full bg-zinc-800 dark:bg-zinc-200 text-white dark:text-zinc-900 text-[10px] font-bold">
+                                                <Badge className="absolute -top-1 -right-1 h-4 w-4 p-0 flex items-center justify-center rounded-full bg-zinc-800 dark:bg-zinc-200 text-white dark:text-zinc-900 text-[10px] font-bold leading-none">
                                                     {it.quantity}
                                                 </Badge>
                                             </div>
@@ -556,14 +555,24 @@ export default function CheckoutPage() {
 
                             <div className="flex flex-col gap-2 text-sm">
                                 <div className="flex justify-between text-zinc-500">
-                                    <span>Subtotal</span>
-                                    <span>${subtotal.toFixed(2)}</span>
+                                    <span>Items</span>
+                                    <span>${itemsPrice.toFixed(2)}</span>
                                 </div>
                                 <div className="flex justify-between text-zinc-500">
                                     <span>Shipping</span>
-                                    <span className={shippingCost === 0 ? "text-emerald-600 dark:text-emerald-400" : ""}>
-                                        {shippingCost === 0 ? "Free" : `$${shippingCost.toFixed(2)}`}
+                                    <span
+                                        className={
+                                            shippingPrice === 0
+                                                ? "text-emerald-600 dark:text-emerald-400"
+                                                : ""
+                                        }
+                                    >
+                                        {shippingPrice === 0 ? "Free" : `$${shippingPrice.toFixed(2)}`}
                                     </span>
+                                </div>
+                                <div className="flex justify-between text-zinc-500">
+                                    <span>Tax</span>
+                                    <span>${taxPrice.toFixed(2)}</span>
                                 </div>
                             </div>
 
@@ -571,14 +580,14 @@ export default function CheckoutPage() {
 
                             <div className="flex justify-between font-bold text-zinc-900 dark:text-zinc-50">
                                 <span>Total</span>
-                                <span>${total.toFixed(2)}</span>
+                                <span>${totalPrice.toFixed(2)}</span>
                             </div>
                         </div>
                     </div>
 
                 </div>
             </div>
-        </div>
+        </div >
     );
 }
 
@@ -602,40 +611,6 @@ function FormCard({
                 </h2>
             </div>
             {children}
-        </div>
-    );
-}
-
-function Field({
-    label,
-    value,
-    onChange,
-    placeholder,
-    type = "text",
-    className,
-    maxLength,
-}: {
-    label: string;
-    value: string;
-    onChange: (v: string) => void;
-    placeholder?: string;
-    type?: string;
-    className?: string;
-    maxLength?: number;
-}) {
-    return (
-        <div className={cn("flex flex-col gap-1.5", className)}>
-            <label className="text-xs font-medium text-zinc-500 dark:text-zinc-400">
-                {label}
-            </label>
-            <input
-                type={type}
-                value={value}
-                maxLength={maxLength}
-                onChange={(e) => onChange(e.target.value)}
-                placeholder={placeholder}
-                className="h-10 px-3 text-sm rounded-xl border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 text-zinc-800 dark:text-zinc-200 placeholder:text-zinc-300 dark:placeholder:text-zinc-600 focus:outline-none focus:ring-2 focus:ring-zinc-300 dark:focus:ring-zinc-700 transition-shadow"
-            />
         </div>
     );
 }

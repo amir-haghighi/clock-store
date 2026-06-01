@@ -1,7 +1,7 @@
 import mongoose, { Schema, Types, Document } from "mongoose";
 
 export interface IOrderItem {
-    product: Types.ObjectId;
+    productId: Types.ObjectId;
 
     title: string;
     image: string;
@@ -15,11 +15,8 @@ export interface IOrderItem {
 
 export interface IShippingAddress {
     fullName: string;
-    phone: string;
-
     country: string;
     city: string;
-
     address: string;
     postalCode?: string;
 }
@@ -36,7 +33,7 @@ export interface IPaymentResult {
 }
 
 export interface IOrder extends Document {
-    user: Types.ObjectId;
+    userId: Types.ObjectId;
 
     items: IOrderItem[];
 
@@ -72,7 +69,7 @@ export interface IOrder extends Document {
 
 const orderItemSchema = new Schema<IOrderItem>(
     {
-        product: {
+        productId: {
             type: Schema.Types.ObjectId,
             ref: "Product",
             required: true,
@@ -124,17 +121,11 @@ const shippingAddressSchema = new Schema<IShippingAddress>(
             trim: true,
         },
 
-        phone: {
-            type: String,
-            required: true,
-            trim: true,
-        },
-
-        country: {
-            type: String,
-            required: true,
-            trim: true,
-        },
+        // country: {
+        //     type: String,
+        //     required: true,
+        //     trim: true,
+        // },
 
         city: {
             type: String,
@@ -191,7 +182,7 @@ const paymentResultSchema = new Schema<IPaymentResult>(
 
 const orderSchema = new Schema<IOrder>(
     {
-        user: {
+        userId: {
             type: Schema.Types.ObjectId,
             ref: "User",
             required: true,
@@ -290,7 +281,7 @@ const orderSchema = new Schema<IOrder>(
     }
 );
 
-orderSchema.index({ user: 1 });
+orderSchema.index({ userId: 1 });
 
 orderSchema.index({ status: 1 });
 

@@ -1,5 +1,5 @@
 "use client"
-import { useCurrentUser } from '@/hooks/useCurrentUser';
+import { useUser } from '@/hooks/useUser';
 import React from 'react'
 import { Button } from '../ui/button';
 import Link from 'next/link';
@@ -7,7 +7,7 @@ import Logout from '../logging/logout';
 import { LogIn, LogInIcon, LogsIcon, LucideLogIn } from 'lucide-react';
 
 export const Nav = () => {
-    const { user, loading, isAuthenticated } = useCurrentUser();
+    const { user, loading, isAuthenticated } = useUser();
 
     return (
         <div className='sticky top-2 ml-auto mr-2 -mt-9'>

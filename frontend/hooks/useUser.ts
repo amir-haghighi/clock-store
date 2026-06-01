@@ -13,7 +13,7 @@ const fetchMe = async (): Promise<User | null> => {
 
     return data;
 };
-export function useCurrentUser() {
+export function useUser() {
 
 
     const query = useQuery({

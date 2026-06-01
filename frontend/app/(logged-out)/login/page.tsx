@@ -11,7 +11,7 @@ import { Input } from '@/components/ui/input'
 import { PasswordInput } from '@/components/ui/password-input'
 import { useRouter } from 'next/navigation'
 import toast from 'react-hot-toast'
-import { useCurrentUser } from '@/hooks/useCurrentUser'
+import { useUser } from '@/hooks/useUser'
 import { useLogin } from '@/hooks/useLogin'
 
 const formSchema = z.object({

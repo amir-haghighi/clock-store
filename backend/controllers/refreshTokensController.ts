@@ -1,152 +1,115 @@
-import type { NextFunction, Response } from "express";
+import jwt from "jsonwebtoken";
+import { User } from "../models/userModel.js";
 import { RefreshToken } from "../models/refreshTokenModel.js";
-import jwt, { type JwtPayload } from "jsonwebtoken";
 import type { ResType } from "../types/res.js";
 
-export const refreshAccessToken = async (req: any, res: ResType) => {
-    try {
-        const token = req.cookies.refreshToken;
-
-        if (!token) {
-            return res.status(401).json({ message: "No refresh token", status: "fail" });
-        }
-
-        const stored = await RefreshToken.findOne({ token });
-
-        if (!stored) {
-            return res.status(401).json({ message: "Invalid refresh token", status: "fail" });
-        }
-
-        const decoded: any = jwt.verify(token, process.env.REFRESH_SECRET!);
-
-        const newAccessToken = jwt.sign(
-            { id: decoded.id },
-            process.env.JWT_SECRET!,
-            { expiresIn: "15m" }
-        );
-
-        res.cookie("accessToken", newAccessToken, {
-            httpOnly: true,
-            secure: process.env.NODE_ENV === "production",
-            sameSite: "lax",
-            path: "/",
-            maxAge: 1000 * 60 * 60 * 24 * 7 // 7 days
-        });
-
-
-
-        res.json({
-            status: "success",
-            message: "refresh token successful"
-        });
-    } catch (err) {
-        res.status(401).json({ message: "Refresh failed", status: "fail" });
-    }
-};
-
-
-export const refreshRefreshToken = async (
+export const refreshAccessToken = async (
     req: any,
-    res: ResType,
-    next: NextFunction
+    res: ResType
 ) => {
-
     try {
+        const refreshToken = req.cookies.refreshToken;
 
-        // old refresh token from cookie
-        const oldRefreshToken = req.cookies.refreshToken;
-
-        if (!oldRefreshToken) {
+        if (!refreshToken) {
             return res.status(401).json({
                 status: "fail",
-                message: "No refresh token"
+                message: "No refresh token provided",
             });
         }
 
-        // verify token
+        // Verify JWT signature & expiration
         const decoded = jwt.verify(
-            oldRefreshToken,
+            refreshToken,
             process.env.REFRESH_SECRET!
-        ) as JwtPayload;
+        ) as { id: string };
 
-        // find stored token
+        // Check token exists in database
         const storedToken = await RefreshToken.findOne({
-            userId: decoded.id
+            token: refreshToken,
         });
 
         if (!storedToken) {
             return res.status(401).json({
                 status: "fail",
-                message: "Invalid refresh token"
+                message: "Invalid refresh token",
             });
         }
 
-        // check exact token match
-        if (storedToken.token !== oldRefreshToken) {
-
-            // possible token reuse attack
+        // Optional: check DB expiration field if your model has one
+        if (
+            storedToken.expiresAt &&
+            storedToken.expiresAt < new Date()
+        ) {
             await RefreshToken.deleteOne({
-                userId: decoded.id
+                _id: storedToken._id,
             });
 
             return res.status(401).json({
                 status: "fail",
-                message: "Refresh token reuse detected"
+                message: "Refresh token expired",
             });
         }
 
-        // create new access token
+        // Make sure user still exists
+        const user = await User.findById(decoded.id).select(
+            "_id role"
+        );
+
+        if (!user) {
+            await RefreshToken.deleteOne({
+                _id: storedToken._id,
+            });
+
+            return res.status(401).json({
+                status: "fail",
+                message: "User no longer exists",
+            });
+        }
+
+        // Create new access token
         const accessToken = jwt.sign(
-            { id: decoded.id },
+            {
+                id: user._id,
+            },
             process.env.JWT_SECRET!,
             {
-                expiresIn: process.env.JWT_EXPIRES!
+                expiresIn: "15m",
             }
         );
 
-        // create new refresh token
-        const newRefreshToken = jwt.sign(
-            { id: decoded.id },
-            process.env.REFRESH_SECRET!,
-            {
-                expiresIn: "7d"
-            }
-        );
-
-        // rotate refresh token
-        storedToken.token = newRefreshToken;
-
-        storedToken.expiresAt = new Date(
-            Date.now() + 7 * 24 * 60 * 60 * 1000
-        );
-
-        await storedToken.save();
-
-        // set new cookie
-        res.cookie("refreshToken", newRefreshToken, {
-            httpOnly: true,
-            secure: process.env.NODE_ENV === "production",
-            sameSite: "lax",
-        });
+        // Cookie lifetime matches JWT lifetime
         res.cookie("accessToken", accessToken, {
             httpOnly: true,
             secure: process.env.NODE_ENV === "production",
             sameSite: "lax",
+            path: "/",
+            maxAge: 15 * 60 * 1000, // 15 minutes
         });
 
-        // send new access token
         return res.status(200).json({
             status: "success",
-            message: "refreshed successfully"
+            message: "Access token refreshed successfully",
         });
 
     } catch (error: any) {
 
-        return res.status(403).json({
+        if (error.name === "TokenExpiredError") {
+            return res.status(401).json({
+                status: "fail",
+                message: "Refresh token expired",
+            });
+        }
+
+        if (error.name === "JsonWebTokenError") {
+            return res.status(401).json({
+                status: "fail",
+                message: "Invalid refresh token",
+            });
+        }
+
+        return res.status(500).json({
             status: "fail",
-            message: error.message || "Invalid refresh token"
+            message: "Failed to refresh access token",
         });
-
     }
-
 };

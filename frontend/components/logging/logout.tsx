@@ -1,7 +1,7 @@
 
 import toast from 'react-hot-toast';
 import { Button } from '../ui/button'
-import { useCurrentUser } from '@/hooks/useCurrentUser';
+import { useUser } from '@/hooks/useUser';
 import { useLogout } from '@/hooks/useLogout';
 import { LogOutIcon } from 'lucide-react';
 

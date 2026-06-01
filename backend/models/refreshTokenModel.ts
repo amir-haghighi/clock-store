@@ -5,7 +5,7 @@ const refreshTokenSchema = new Schema({
     userId: {
         type: Schema.Types.ObjectId,
         required: true,
-        ref: "user"
+        ref: "User"
     },
     token: {
         type: String,
