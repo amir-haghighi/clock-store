@@ -16,50 +16,37 @@ import {
     X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { CartItemType, useCart } from "@/hooks/useCart";
 
-// ── Types ─────────────────────────────────────────────────────────────────────
-
-export interface CartItem {
-    id: string;
-    slug: string;
-    title: string;
-    brand: string;
-    image: string;
-    price: number;
-    discountPrice?: number;
-    color: { name: string; hex: string };
-    stock: number;
-    quantity: number;
-}
 
 // ── Mock data (replace with your cart state / context) ────────────────────────
 
-const MOCK_ITEMS: CartItem[] = [
-    {
-        id: "1",
-        slug: "seiko-presage-cocktail-time",
-        title: "Seiko Presage Cocktail Time",
-        brand: "Seiko",
-        image: "",
-        price: 420,
-        discountPrice: 349,
-        color: { name: "Midnight Blue", hex: "#1e3a5f" },
-        stock: 4,
-        quantity: 1,
-    },
-    {
-        id: "2",
-        slug: "hamilton-khaki-field",
-        title: "Hamilton Khaki Field Auto",
-        brand: "Hamilton",
-        image: "",
-        price: 695,
-        discountPrice: 0,
-        color: { name: "Army Green", hex: "#4a5240" },
-        stock: 10,
-        quantity: 2,
-    },
-];
+// const cartItems: CartItem[] = [
+//     {
+//         id: "1",
+//         slug: "seiko-presage-cocktail-time",
+//         title: "Seiko Presage Cocktail Time",
+//         brand: "Seiko",
+//         image: "",
+//         price: 420,
+//         discountPrice: 349,
+//         color: { name: "Midnight Blue", hex: "#1e3a5f" },
+//         stock: 4,
+//         quantity: 1,
+//     },
+//     {
+//         id: "2",
+//         slug: "hamilton-khaki-field",
+//         title: "Hamilton Khaki Field Auto",
+//         brand: "Hamilton",
+//         image: "",
+//         price: 695,
+//         discountPrice: 0,
+//         color: { name: "Army Green", hex: "#4a5240" },
+//         stock: 10,
+//         quantity: 2,
+//     },
+// ];
 
 const PROMO_CODES: Record<string, number> = {
     WATCH10: 10,
@@ -69,7 +56,10 @@ const PROMO_CODES: Record<string, number> = {
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export default function CartPage() {
-    const [items, setItems] = useState<CartItem[]>(MOCK_ITEMS);
+    const { cartItems } = useCart()
+    console.log({ cartItems })
+    console.log(cartItems)
+    const [items, setItems] = useState<CartItemType[]>(cartItems);
     const [promoInput, setPromoInput] = useState("");
     const [appliedPromo, setAppliedPromo] = useState<string | null>(null);
     const [promoError, setPromoError] = useState("");
@@ -77,7 +67,7 @@ export default function CartPage() {
     const API = process.env.NEXT_PUBLIC_API_URL ?? "";
 
     // helpers
-    const effectivePrice = (item: CartItem) =>
+    const effectivePrice = (item: CartItemType) =>
         item.discountPrice && item.discountPrice > 0
             ? item.discountPrice
             : item.price;
@@ -85,13 +75,13 @@ export default function CartPage() {
     const updateQty = (id: string, delta: number) =>
         setItems((prev) =>
             prev.map((it) =>
-                it.id === id
+                it.productId === id
                     ? { ...it, quantity: Math.min(it.stock, Math.max(1, it.quantity + delta)) }
                     : it
             )
         );
 
-    const remove = (id: string) => setItems((prev) => prev.filter((it) => it.id !== id));
+    const remove = (id: string) => setItems((prev) => prev.filter((it) => it.productId !== id));
 
     const subtotal = items.reduce((s, it) => s + effectivePrice(it) * it.quantity, 0);
     const discount = appliedPromo ? (subtotal * PROMO_CODES[appliedPromo]) / 100 : 0;
@@ -124,7 +114,7 @@ export default function CartPage() {
                     </p>
                 </div>
                 <Button asChild className="rounded-xl px-6">
-                    <Link href="/products">
+                    <Link href="/">
                         <ChevronLeft className="mr-1 h-4 w-4" />
                         Browse Watches
                     </Link>
@@ -140,7 +130,7 @@ export default function CartPage() {
             <div className="border-b border-zinc-100 dark:border-zinc-800 bg-white dark:bg-zinc-950 sticky top-0 z-10">
                 <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 h-14 flex items-center gap-3">
                     <Link
-                        href="/products"
+                        href="/"
                         className="text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-300 transition-colors"
                     >
                         <ChevronLeft className="h-5 w-5" />
@@ -166,7 +156,7 @@ export default function CartPage() {
 
                             return (
                                 <div
-                                    key={item.id}
+                                    key={item.productId}
                                     className="group flex gap-4 bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-100 dark:border-zinc-800 p-4 transition-shadow hover:shadow-md"
                                 >
                                     {/* Image */}
@@ -201,10 +191,11 @@ export default function CartPage() {
                                                 </Link>
                                             </div>
                                             <button
-                                                onClick={() => remove(item.id)}
-                                                className="shrink-0 h-7 w-7 rounded-full flex items-center justify-center text-zinc-300 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-all duration-150"
+                                                onClick={() => remove(item.productId)}
+                                                className="shrink-0 h-7 w-7 rounded-full flex items-center justify-center 
+                                                cursor-pointer text-zinc-300 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-all duration-150"
                                             >
-                                                <Trash2 className="h-3.5 w-3.5" />
+                                                <Trash2 className="h-3.5 w-3.5 " />
                                             </button>
                                         </div>
 
@@ -212,9 +203,9 @@ export default function CartPage() {
                                         <div className="flex items-center gap-1.5">
                                             <span
                                                 className="h-3 w-3 rounded-full border border-zinc-200 dark:border-zinc-700"
-                                                style={{ backgroundColor: item.color.hex }}
+                                                style={{ backgroundColor: item.selectedColor?.hex }}
                                             />
-                                            <span className="text-xs text-zinc-400">{item.color.name}</span>
+                                            <span className="text-xs text-zinc-400">{item.selectedColor?.name}</span>
                                         </div>
 
                                         {/* Price + qty */}
@@ -229,26 +220,27 @@ export default function CartPage() {
                                                     </span>
                                                 )}
                                             </div>
+                                        </div>
+                                        {/* Qty stepper */}
+                                        <div className="flex items-center border  mr-auto border-zinc-200 dark:border-zinc-700 rounded-lg overflow-hidden">
+                                            <button
+                                                onClick={() => updateQty(item.productId, -1)}
+                                                className="h-7 w-7 flex items-center justify-center text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors text-base leading-none cursor-pointer"
 
-                                            {/* Qty stepper */}
-                                            <div className="flex items-center border border-zinc-200 dark:border-zinc-700 rounded-lg overflow-hidden">
-                                                <button
-                                                    onClick={() => updateQty(item.id, -1)}
-                                                    className="h-7 w-7 flex items-center justify-center text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors text-base leading-none"
-                                                >
-                                                    −
-                                                </button>
-                                                <span className="w-8 text-center text-xs font-semibold text-zinc-700 dark:text-zinc-300">
-                                                    {item.quantity}
-                                                </span>
-                                                <button
-                                                    onClick={() => updateQty(item.id, 1)}
-                                                    disabled={item.quantity >= item.stock}
-                                                    className="h-7 w-7 flex items-center justify-center text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors disabled:opacity-30 text-base leading-none"
-                                                >
-                                                    +
-                                                </button>
-                                            </div>
+                                            >
+                                                −
+                                            </button>
+                                            <span className="w-8 text-center text-xs font-semibold text-zinc-700 dark:text-zinc-300">
+                                                {item.quantity}
+                                            </span>
+                                            <button
+                                                onClick={() => updateQty(item.productId, 1)}
+                                                disabled={item.quantity >= item.stock}
+                                                className="h-7 w-7 flex items-center justify-center text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors disabled:opacity-30 text-base leading-none cursor-pointer"
+                                            >
+                                                +
+                                            </button>
+
                                         </div>
                                     </div>
                                 </div>
@@ -344,7 +336,7 @@ export default function CartPage() {
                             </Button>
 
                             <Link
-                                href="/products"
+                                href="/"
                                 className="text-center text-xs text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 transition-colors"
                             >
                                 ← Continue Shopping

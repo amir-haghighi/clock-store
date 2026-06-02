@@ -8,6 +8,7 @@ import cors from "cors"
 import productRouter from "./routes/productRouter.js";
 import orderRouter from "./routes/orderRouter.js";
 import path from "path";
+import cartRouter from "./routes/cartRouter.js";
 
 const app = express();
 
@@ -28,6 +29,7 @@ app.use("/api/v1/users", userRouter)
 app.use("/api/v1/auth", authRouter)
 app.use("/api/v1/products", productRouter)
 app.use("/api/v1/order", orderRouter)
+app.use("/api/v1/cart", cartRouter)
 
 mongoose
     .connect("mongodb://127.0.0.1:27017/clock-store")

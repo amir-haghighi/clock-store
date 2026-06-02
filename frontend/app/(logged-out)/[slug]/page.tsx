@@ -19,18 +19,27 @@ import {
     ChevronRight,
 } from "lucide-react";
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 import { useProductBySlug } from "@/hooks/useProducts";
+import { useCart } from "@/hooks/useCart";
+import toast from "react-hot-toast";
 
 export default function ProductPage() {
     const params = useParams();
     const slug = params?.slug as string;
     const { product, loading, error } = useProductBySlug(slug);
     const [selectedImage, setSelectedImage] = useState(0);
-    const [selectedColor, setSelectedColor] = useState(0);
+    const [selectedColor, setSelectedColor] = useState({ name: "", hex: "" });
     const [quantity, setQuantity] = useState(1);
     const [wishlisted, setWishlisted] = useState(false);
+    const { addToCartOffline } = useCart()
+    console.log({ product })
+    useEffect(() => {
+        if (!!product) {
+            setSelectedColor(product.colors[0])
+        }
+    }, [product])
 
     // ── Loading ──────────────────────────────────────────────────────────────
     if (loading) {
@@ -69,6 +78,29 @@ export default function ProductPage() {
 
             </div>
         );
+    }
+
+    // ── handlers ───────────────────────────────────────────────────────
+
+    const addToCartHandler = () => {
+
+        addToCartOffline(
+            {
+                price: product.price,
+                discountPrice: product?.discountPrice,
+                brand: product.brand,
+                image: product.images[0],
+                slug: product.slug,
+                stock: product.stock,
+                title: product.title,
+                productId: product._id,
+                quantity,
+                selectedColor,
+            }
+        )
+        toast.success(<div>
+            Added to cart! Go to <Link href="/cart" className="text-primary underline">CART</Link>
+        </div>)
     }
 
     // ── Derived values ───────────────────────────────────────────────────────
@@ -115,7 +147,7 @@ export default function ProductPage() {
                 <div className="grid grid-cols-1  lg:grid-cols-3 gap-12 xl:gap-20">
 
                     {/* ── Left: image gallery ── */}
-                    <div className="flex flex-col ">
+                    <div className="flex  ">
                         {/* Thumbnails */}
                         {product.images.length > 1 && (
                             <div className="hidden sm:flex flex-col gap-2 w-24  overflow-y-auto shrink-0">
@@ -208,9 +240,9 @@ export default function ProductPage() {
                     </div>
 
                     {/* ── Right: product info ── */}
-                    <div className="flex flex-col gap-6">
+                    <div className="flex flex-col  items-center lg:items-start  gap-6">
                         {/* Brand & category */}
-                        <div className="flex items-center gap-2">
+                        <div className="flex  gap-2">
                             <span className="text-sm font-semibold uppercase tracking-widest text-zinc-400 dark:text-zinc-500">
                                 {product.brand}
                             </span>
@@ -230,7 +262,7 @@ export default function ProductPage() {
                         </div>
 
                         {/* Title */}
-                        <div>
+                        <div className="flex flex-col items-center lg:items-start gap-2">
                             <h1 className="font-bold tracking-tight text-zinc-900 dark:text-zinc-50 leading-tight">
                                 {product.title}
                             </h1>
@@ -296,45 +328,7 @@ export default function ProductPage() {
                             </span>
                         </div>
 
-                        {/* Color selector */}
-                        {product.colors?.length > 0 && (
-                            <div>
-                                <p className="text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2.5">
-                                    Color:{" "}
-                                    <span className="font-normal text-zinc-500">
-                                        {product.colors[selectedColor]?.name}
-                                    </span>
-                                </p>
-                                <div className="flex items-center gap-2.5">
-                                    {product.colors.map(
-                                        (c: { name: string; hex: string }, i: number) => (
-                                            <button
-                                                key={i}
-                                                title={c.name}
-                                                onClick={() => setSelectedColor(i)}
-                                                className={cn(
-                                                    "h-8 w-8 rounded-full border-2 transition-all duration-200 flex items-center justify-center",
-                                                    selectedColor === i
-                                                        ? "border-zinc-900 dark:border-zinc-100 scale-110"
-                                                        : "border-zinc-200 dark:border-zinc-700 hover:scale-105"
-                                                )}
-                                                style={{ backgroundColor: c.hex }}
-                                            >
-                                                {selectedColor === i && (
-                                                    <Check
-                                                        className="h-3.5 w-3.5 drop-shadow"
-                                                        style={{
-                                                            color:
-                                                                isLightColor(c.hex) ? "#18181b" : "#ffffff",
-                                                        }}
-                                                    />
-                                                )}
-                                            </button>
-                                        )
-                                    )}
-                                </div>
-                            </div>
-                        )}
+
 
 
                         {/* Trust badges */}
@@ -357,7 +351,7 @@ export default function ProductPage() {
                         </div>
                     </div>
                     {/* Quantity + Add to Cart */}
-                    <div className="flex flex-col items-start justify-end gap-3 mt-2">
+                    <div className="flex flex-col items-center lg:items-start justify-end gap-3 mt-2">
                         {/* discount price */}
 
                         <div className="flex items-center gap-3">
@@ -379,7 +373,46 @@ export default function ProductPage() {
                                 ${hasDiscount ? product.discountPrice : product.price}
                             </span>
                         </div>
+                        {/* Color selector */}
+                        {product.colors?.length > 0 && (
+                            <div>
+                                <p className="text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2.5">
+                                    Color:{" "}
+                                    <span className="font-normal text-zinc-500">
+                                        {selectedColor.name}
+                                    </span>
+                                </p>
+                                <div className="flex items-center justify-center lg:justify-start gap-2.5">
+                                    {product.colors.map(
+                                        (c: { name: string; hex: string }, i: number) => (
+                                            <button
+                                                key={i}
+                                                title={c.name}
+                                                onClick={() => setSelectedColor(c)}
+                                                className={cn(
+                                                    "h-8 w-8 rounded-full border-2 cursor-pointer transition-all duration-200 flex items-center justify-center",
+                                                    selectedColor.name === c.name
+                                                        ? "border-zinc-900 dark:border-zinc-100 scale-110"
+                                                        : "border-zinc-200 dark:border-zinc-700 hover:scale-105"
+                                                )}
+                                                style={{ backgroundColor: c.hex }}
+                                            >
+                                                {selectedColor.name === c.name && (
+                                                    <Check
+                                                        className="h-3.5 w-3.5 drop-shadow"
+                                                    // style={{
 
+                                                    //     color:
+                                                    //         isLightColor(c.hex) ? "#18181b" : "#ffffff",
+                                                    // }}
+                                                    />
+                                                )}
+                                            </button>
+                                        )
+                                    )}
+                                </div>
+                            </div>
+                        )}
                         {/* Qty stepper */}
                         <div className="flex items-center border border-zinc-200 dark:border-zinc-700 rounded-xl overflow-hidden">
                             <button
@@ -409,6 +442,7 @@ export default function ProductPage() {
                                 size="lg"
                                 disabled={!inStock || !product.isActive}
                                 className="flex-1 gap-2 w-36 rounded-xl font-semibold h-11 text-sm bg-zinc-900 hover:bg-zinc-700 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-300 transition-all duration-200 shadow-md hover:shadow-lg"
+                                onClick={addToCartHandler}
                             >
                                 <ShoppingCart className="h-4 w-4" />
                                 {!inStock ? "Out of Stock" : "Add to Cart"}

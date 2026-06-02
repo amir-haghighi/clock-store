@@ -10,14 +10,15 @@ export const Nav = () => {
     const { user, loading, isAuthenticated } = useUser();
 
     return (
-        <div className='sticky top-2 ml-auto mr-2 -mt-9'>
+        <div className='sticky top-2 ml-auto mr-2 -mt-9 z-50'>
 
             {
                 !isAuthenticated ?
 
-                    <div className='flex gap-2 items-center'>
+                    <div className='flex gap-2 items-center '>
                         <Button asChild variant={"default"}>
-                            <Link href="/login">    <LogInIcon />Log in</Link>
+                            <Link href="/login">
+                                <LogInIcon />Log in</Link>
                         </Button>
                         <Button asChild variant={"outline"}  >
                             <Link href="/signup"> Sign up</Link>
