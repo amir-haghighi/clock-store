@@ -14,9 +14,14 @@ import {
     Tag,
     ArrowRight,
     X,
+    CarTaxiFrontIcon,
+    ShoppingCartIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { CartItemType, useCart } from "@/hooks/useCart";
+import { CartItemType, useCartStore } from "@/store/useCartStore";
+import { useUser } from "@/hooks/useUser";
+import { useRouter } from "next/navigation";
+import toast from "react-hot-toast";
 
 
 // ── Mock data (replace with your cart state / context) ────────────────────────
@@ -56,10 +61,9 @@ const PROMO_CODES: Record<string, number> = {
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export default function CartPage() {
-    const { cartItems } = useCart()
-    console.log({ cartItems })
-    console.log(cartItems)
-    const [items, setItems] = useState<CartItemType[]>(cartItems);
+    const { isAuthenticated } = useUser();
+    const router = useRouter()
+    const { cartItems, addItem, removeItem } = useCartStore()
     const [promoInput, setPromoInput] = useState("");
     const [appliedPromo, setAppliedPromo] = useState<string | null>(null);
     const [promoError, setPromoError] = useState("");
@@ -68,22 +72,13 @@ export default function CartPage() {
 
     // helpers
     const effectivePrice = (item: CartItemType) =>
-        item.discountPrice && item.discountPrice > 0
+        item.discountPrice && item.discountPrice < item.price && item.discountPrice > 0
             ? item.discountPrice
             : item.price;
 
-    const updateQty = (id: string, delta: number) =>
-        setItems((prev) =>
-            prev.map((it) =>
-                it.productId === id
-                    ? { ...it, quantity: Math.min(it.stock, Math.max(1, it.quantity + delta)) }
-                    : it
-            )
-        );
 
-    const remove = (id: string) => setItems((prev) => prev.filter((it) => it.productId !== id));
 
-    const subtotal = items.reduce((s, it) => s + effectivePrice(it) * it.quantity, 0);
+    const subtotal = cartItems.reduce((s, it) => s + effectivePrice(it) * it.quantity, 0);
     const discount = appliedPromo ? (subtotal * PROMO_CODES[appliedPromo]) / 100 : 0;
     const shipping = subtotal >= 500 ? 0 : 15;
     const total = subtotal - discount + shipping;
@@ -97,9 +92,16 @@ export default function CartPage() {
             setPromoError("Invalid promo code");
         }
     };
-
+    const checkoutHandler = () => {
+        if (!isAuthenticated) {
+            router.push("/login")
+            toast.error("ابتدا وارد شوید")
+            return
+        }
+        router.push("/checkout")
+    }
     // ── Empty state ──────────────────────────────────────────────────────────
-    if (items.length === 0) {
+    if (cartItems.length === 0) {
         return (
             <div className="min-h-screen bg-white dark:bg-zinc-950 flex flex-col items-center justify-center gap-6 px-4">
                 <div className="h-20 w-20 rounded-full bg-zinc-100 dark:bg-zinc-900 flex items-center justify-center">
@@ -136,10 +138,11 @@ export default function CartPage() {
                         <ChevronLeft className="h-5 w-5" />
                     </Link>
                     <h1 className="text-base font-semibold text-zinc-900 dark:text-zinc-50 tracking-tight">
-                        Shopping Cart
+                        سبد خرید
+
                     </h1>
                     <Badge variant="secondary" className="ml-1 text-xs">
-                        {items.reduce((s, it) => s + it.quantity, 0)} items
+                        {cartItems.reduce((s, it) => s + it.quantity, 0)} مورد
                     </Badge>
                 </div>
             </div>
@@ -149,7 +152,7 @@ export default function CartPage() {
 
                     {/* ── Item list ── */}
                     <div className="flex flex-col gap-3">
-                        {items.map((item) => {
+                        {cartItems.map((item) => {
                             const hasDiscount = !!item.discountPrice && item.discountPrice > 0;
                             const ep = effectivePrice(item);
                             const imgSrc = item.image ? `${API}${item.image}` : null;
@@ -191,7 +194,7 @@ export default function CartPage() {
                                                 </Link>
                                             </div>
                                             <button
-                                                onClick={() => remove(item.productId)}
+                                                onClick={() => removeItem(item)}
                                                 className="shrink-0 h-7 w-7 rounded-full flex items-center justify-center 
                                                 cursor-pointer text-zinc-300 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-all duration-150"
                                             >
@@ -224,7 +227,7 @@ export default function CartPage() {
                                         {/* Qty stepper */}
                                         <div className="flex items-center border  mr-auto border-zinc-200 dark:border-zinc-700 rounded-lg overflow-hidden">
                                             <button
-                                                onClick={() => updateQty(item.productId, -1)}
+                                                onClick={() => removeItem({ ...item, quantity: 1 })}
                                                 className="h-7 w-7 flex items-center justify-center text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors text-base leading-none cursor-pointer"
 
                                             >
@@ -234,7 +237,7 @@ export default function CartPage() {
                                                 {item.quantity}
                                             </span>
                                             <button
-                                                onClick={() => updateQty(item.productId, 1)}
+                                                onClick={() => addItem({ ...item, quantity: 1 })}
                                                 disabled={item.quantity >= item.stock}
                                                 className="h-7 w-7 flex items-center justify-center text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors disabled:opacity-30 text-base leading-none cursor-pointer"
                                             >
@@ -329,10 +332,10 @@ export default function CartPage() {
                                 size="lg"
                                 className="w-full rounded-xl font-semibold gap-2 bg-zinc-900 hover:bg-zinc-700 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-300 transition-all duration-200 shadow-md hover:shadow-lg"
                             >
-                                <Link href="/checkout">
+                                <Button onClick={checkoutHandler}>
                                     Proceed to Checkout
                                     <ArrowRight className="h-4 w-4" />
-                                </Link>
+                                </Button>
                             </Button>
 
                             <Link

@@ -594,51 +594,51 @@ export default function CheckoutPage() {
 
 // ── Sub-components ─────────────────────────────────────────────────────────────
 
-function FormCard({
-    title,
-    icon: Icon,
-    children,
-}: {
-    title: string;
-    icon: typeof User;
-    children: React.ReactNode;
-}) {
-    return (
-        <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-100 dark:border-zinc-800 p-6">
-            <div className="flex items-center gap-2 mb-6">
-                <Icon className="h-4 w-4 text-zinc-400" />
-                <h2 className="text-sm font-semibold text-zinc-800 dark:text-zinc-200 tracking-tight">
-                    {title}
-                </h2>
-            </div>
-            {children}
-        </div>
-    );
-}
+// function FormCard({
+//     title,
+//     icon: Icon,
+//     children,
+// }: {
+//     title: string;
+//     icon: typeof User;
+//     children: React.ReactNode;
+// }) {
+//     return (
+//         <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-100 dark:border-zinc-800 p-6">
+//             <div className="flex items-center gap-2 mb-6">
+//                 <Icon className="h-4 w-4 text-zinc-400" />
+//                 <h2 className="text-sm font-semibold text-zinc-800 dark:text-zinc-200 tracking-tight">
+//                     {title}
+//                 </h2>
+//             </div>
+//             {children}
+//         </div>
+//     );
+// }
 
-function SummaryBlock({
-    title,
-    onEdit,
-    children,
-}: {
-    title: string;
-    onEdit: () => void;
-    children: React.ReactNode;
-}) {
-    return (
-        <div>
-            <div className="flex items-center justify-between mb-2">
-                <p className="text-xs font-semibold uppercase tracking-widest text-zinc-400">
-                    {title}
-                </p>
-                <button
-                    onClick={onEdit}
-                    className="text-xs text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-300 transition-colors underline underline-offset-2"
-                >
-                    Edit
-                </button>
-            </div>
-            <div className="space-y-0.5">{children}</div>
-        </div>
-    );
-}
+// function SummaryBlock({
+//     title,
+//     onEdit,
+//     children,
+// }: {
+//     title: string;
+//     onEdit: () => void;
+//     children: React.ReactNode;
+// }) {
+//     return (
+//         <div>
+//             <div className="flex items-center justify-between mb-2">
+//                 <p className="text-xs font-semibold uppercase tracking-widest text-zinc-400">
+//                     {title}
+//                 </p>
+//                 <button
+//                     onClick={onEdit}
+//                     className="text-xs text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-300 transition-colors underline underline-offset-2"
+//                 >
+//                     Edit
+//                 </button>
+//             </div>
+//             <div className="space-y-0.5">{children}</div>
+//         </div>
+//     );
+// }

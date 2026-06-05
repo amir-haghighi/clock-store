@@ -2,13 +2,87 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 
+/* ── Luxury Watch Store Fonts ── */
+@font-face {
+  font-family: "Vazirmatn";
+  src: url("/fonts/vazirmatn/Vazirmatn-Regular.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Vazirmatn";
+  src: url("/fonts/vazirmatn/Vazirmatn-Medium.ttf") format("truetype");
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Vazirmatn";
+  src: url("/fonts/vazirmatn/Vazirmatn-Bold.ttf") format("truetype");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Vazirmatn";
+  src: url("/fonts/vazirmatn/Vazirmatn-Regular.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Vazirmatn";
+  src: url("/fonts/vazirmatn/Vazirmatn-Medium.ttf") format("truetype");
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Vazirmatn";
+  src: url("/fonts/vazirmatn/Vazirmatn-Bold.ttf") format("truetype");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "DM Mono";
+  src: url("/fonts/dm-mono/DMMono-Regular.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "DM Mono";
+  src: url("/fonts/dm-mono/DMMono-Medium.ttf") format("truetype");
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "DM Mono";
+  src: url("/fonts/dm-mono/DMMono-MediumItalic.ttf") format("truetype");
+  font-weight: 500;
+  font-style: italic;
+  font-display: swap;
+}
+
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: "Vazirmatn", system-ui, sans-serif;
+  --font-serif: "Cormorant Garamond", Georgia, serif;
+  --font-mono: "DM Mono", ui-monospace, monospace;
   --font-heading: var(--font-sans);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
@@ -46,77 +120,212 @@
   --radius-2xl: calc(var(--radius) * 1.8);
   --radius-3xl: calc(var(--radius) * 2.2);
   --radius-4xl: calc(var(--radius) * 2.6);
+
+  /* ── Watch Store Custom Tokens ── */
+  --color-gold: var(--gold);
+  --color-gold-muted: var(--gold-muted);
+  --color-gold-subtle: var(--gold-subtle);
+  --color-surface: var(--surface);
+  --color-surface-raised: var(--surface-raised);
+  --font-display: var(--font-display);
+  --font-persian: var(--font-persian);
+  --font-code: var(--font-code);
 }
 
+/* ════════════════════════════════════════════
+   LIGHT THEME
+   ════════════════════════════════════════════ */
 :root {
-  --background: var(--color-zinc-200);
-  --foreground: oklch(0.145 0 0);
-  --card: var(--color-zinc-300);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: var(--color-pink-600);
-  --primary-foreground: var(--color-white);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: var(--color-zinc-300);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
+  /* background: از zinc-200 سرد → به warm stone گرم‌تر */
+  --background: oklch(0.93 0.006 80);
+  --foreground: oklch(0.13 0.01 60);
+
+  /* card: از zinc-300 → گرم‌تر و کمی کرم */
+  --card: oklch(0.91 0.008 75);
+  --card-foreground: oklch(0.13 0.01 60);
+
+  --popover: oklch(0.99 0.004 80);
+  --popover-foreground: oklch(0.13 0.01 60);
+
+  /* primary: از pink-600 → به طلایی لوکس (قلب سیستم رنگی) */
+  --primary: oklch(0.68 0.1 72);
+  --primary-foreground: oklch(0.98 0 0);
+
+  /* secondary: کمی گرم‌تر از قبل */
+  --secondary: oklch(0.95 0.006 70);
+  --secondary-foreground: oklch(0.2 0.01 60);
+
+  /* muted: هماهنگ با background */
+  --muted: oklch(0.89 0.008 72);
+  --muted-foreground: oklch(0.48 0.012 65);
+
+  /* accent: یک طلایی خیلی کمرنگ */
+  --accent: oklch(0.92 0.02 78);
+  --accent-foreground: oklch(0.2 0.01 60);
+
   --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
+
+  /* border & input: کمی گرم و قابل دیدن */
+  --border: oklch(0.84 0.01 70);
+  --input: oklch(0.84 0.01 70);
+
+  /* ring: طلایی به جای خاکستری */
+  --ring: oklch(0.68 0.1 72);
+
+  /* chart: پالت گرم و متنوع به جای همه خاکستری */
+  --chart-1: oklch(0.68 0.10 72);
+  /* gold */
+  --chart-2: oklch(0.55 0.08 50);
+  /* bronze */
+  --chart-3: oklch(0.40 0.06 40);
+  /* dark brown */
+  --chart-4: oklch(0.72 0.06 85);
+  /* warm sand */
+  --chart-5: oklch(0.28 0.04 35);
+  /* deep espresso */
+
   --radius: 0.625rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+
+  /* sidebar */
+  --sidebar: oklch(0.96 0.006 75);
+  --sidebar-foreground: oklch(0.13 0.01 60);
+  --sidebar-primary: oklch(0.68 0.1 72);
+  --sidebar-primary-foreground: oklch(0.98 0 0);
+  --sidebar-accent: oklch(0.92 0.012 75);
+  --sidebar-accent-foreground: oklch(0.2 0.01 60);
+  --sidebar-border: oklch(0.84 0.01 70);
+  --sidebar-ring: oklch(0.68 0.1 72);
+
+  /* ── Gold Palette ── */
+  --gold: #c9a84c;
+  --gold-muted: #b8943e;
+  --gold-subtle: rgba(201, 168, 76, 0.12);
+
+  /* ── Surface Layers ── */
+  --surface: rgba(255, 252, 245, 0.6);
+  --surface-raised: rgba(255, 252, 245, 0.9);
+
+  /* ── Typography ── */
+  --font-display: 'Cormorant Garamond', Georgia, serif;
+  --font-persian: 'Vazirmatn', Tahoma, sans-serif;
+
+  --font-code: 'DM Mono', 'Courier New', monospace;
+
+  /* ── Shadows ── */
+  --shadow-gold: 0 0 0 1px rgba(201, 168, 76, 0.25), 0 4px 24px rgba(201, 168, 76, 0.1);
+  --shadow-card: 0 1px 3px rgba(80, 60, 20, 0.06), 0 8px 32px rgba(80, 60, 20, 0.05);
+  --shadow-lg: 0 8px 40px rgba(80, 60, 20, 0.1);
+
+  /* ── Transitions ── */
+  --ease-luxury: cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  --duration-base: 240ms;
+  --duration-slow: 480ms;
 }
 
+@font-face {
+  font-family: "Cormorant Garamond";
+  src: url("/fonts/cormorant-garamond/CormorantGaramond-Regular.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Cormorant Garamond";
+  src: url("/fonts/cormorant-garamond/CormorantGaramond-Medium.ttf") format("truetype");
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Cormorant Garamond";
+  src: url("/fonts/cormorant-garamond/CormorantGaramond-Bold.ttf") format("truetype");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* ════════════════════════════════════════════
+   DARK THEME
+   ════════════════════════════════════════════ */
 .dark {
-  --background: var(--color-zinc-900);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: var(--color-pink-600);
-  --primary-foreground: var(--color-white);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
+  /* background: از zinc-900 خنثی → به تاریک گرم‌تر */
+  --background: oklch(0.11 0.008 60);
+  --foreground: oklch(0.96 0.006 70);
+
+  /* card: کمی گرم‌تر از حالت فعلی */
+  --card: oklch(0.16 0.008 58);
+  --card-foreground: oklch(0.96 0.006 70);
+
+  --popover: oklch(0.16 0.008 58);
+  --popover-foreground: oklch(0.96 0.006 70);
+
+  /* primary: همان طلایی لوکس در dark */
+  --primary: oklch(0.72 0.11 72);
+  --primary-foreground: oklch(0.10 0.005 60);
+
+  /* secondary */
+  --secondary: oklch(0.22 0.008 58);
+  --secondary-foreground: oklch(0.96 0.006 70);
+
+  /* muted */
+  --muted: oklch(0.22 0.008 58);
+  --muted-foreground: oklch(0.62 0.01 65);
+
+  /* accent */
+  --accent: oklch(0.22 0.015 70);
+  --accent-foreground: oklch(0.96 0.006 70);
+
   --destructive: oklch(0.704 0.191 22.216);
+
+  /* border & input: کمی گرم‌تر از سفید خالص */
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
+
+  /* ring: طلایی */
+  --ring: oklch(0.72 0.11 72);
+
+  /* chart: همان پالت گرم، روشن‌تر برای dark */
+  --chart-1: oklch(0.75 0.10 72);
+  /* bright gold */
+  --chart-2: oklch(0.62 0.08 52);
+  /* bronze */
+  --chart-3: oklch(0.82 0.07 88);
+  /* warm sand */
+  --chart-4: oklch(0.48 0.07 42);
+  /* copper */
+  --chart-5: oklch(0.35 0.05 38);
+  /* dark bronze */
+
+  /* sidebar */
+  --sidebar: oklch(0.16 0.008 58);
+  --sidebar-foreground: oklch(0.96 0.006 70);
+  --sidebar-primary: oklch(0.72 0.11 72);
+  --sidebar-primary-foreground: oklch(0.10 0.005 60);
+  --sidebar-accent: oklch(0.22 0.012 65);
+  --sidebar-accent-foreground: oklch(0.96 0.006 70);
   --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+  --sidebar-ring: oklch(0.72 0.11 72);
+
+  /* ── Gold Palette (dark) ── */
+  --gold: #c9a84c;
+  --gold-muted: #d4b86a;
+  --gold-subtle: rgba(201, 168, 76, 0.1);
+
+  /* ── Surface Layers ── */
+  --surface: rgba(255, 250, 235, 0.04);
+  --surface-raised: rgba(255, 250, 235, 0.07);
+
+  /* ── Shadows ── */
+  --shadow-gold: 0 0 0 1px rgba(201, 168, 76, 0.3), 0 4px 24px rgba(201, 168, 76, 0.15);
+  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.4), 0 8px 32px rgba(0, 0, 0, 0.3);
+  --shadow-lg: 0 8px 40px rgba(0, 0, 0, 0.5);
 }
 
+/* ════════════════════════════════════════════
+   BASE LAYER
+   ════════════════════════════════════════════ */
 @layer base {
   * {
     @apply border-border outline-ring/50;
@@ -124,10 +333,15 @@
 
   body {
     @apply bg-background text-foreground;
+    font-family: var(--font-persian), var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
   }
 
   html {
     @apply font-sans;
+    scroll-behavior: smooth;
   }
 
   h1,
@@ -136,38 +350,224 @@
   h4,
   h5,
   h6 {
-    @apply font-bold
+    @apply font-bold;
+    font-family: var(--font-display), var(--font-heading);
+    letter-spacing: -0.02em;
+    line-height: 1.15;
+  }
+
+  h1,
+  h2,
+  .lux {
+    font-family: var(--font-display);
   }
 
   h1 {
     font-size: 2rem;
-
   }
 
   h2 {
     font-size: 1.7rem;
-
   }
 
   h3 {
     font-size: 1.5rem;
-
   }
 
   h4 {
     font-size: 1.4rem;
-
   }
 
   h5 {
     font-size: 1.25rem;
-
   }
 
   h6 {
     font-size: 1rem;
-
   }
 
+  /* ── Refined Scrollbar ── */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
 
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: var(--gold-subtle);
+    border-radius: 999px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--gold-muted);
+  }
+
+  /* ── Text Selection ── */
+  ::selection {
+    background-color: var(--gold-subtle);
+    color: var(--gold);
+  }
+
+  /* ── Focus Ring ── */
+  :focus-visible {
+    outline: 1.5px solid var(--gold);
+    outline-offset: 3px;
+    border-radius: var(--radius-sm);
+  }
+}
+
+/* ════════════════════════════════════════════
+   UTILITY LAYER — Watch Store Helpers
+   ════════════════════════════════════════════ */
+@layer utilities {
+
+  /* ── Gold Text & Border ── */
+  .text-gold {
+    color: var(--gold);
+  }
+
+  .text-gold-muted {
+    color: var(--gold-muted);
+  }
+
+  .border-gold {
+    border-color: var(--gold);
+  }
+
+  .border-gold-subtle {
+    border-color: rgba(201, 168, 76, 0.25);
+  }
+
+  .bg-gold {
+    background-color: var(--gold);
+  }
+
+  .bg-gold-subtle {
+    background-color: var(--gold-subtle);
+  }
+
+  .ring-gold {
+    --tw-ring-color: var(--gold);
+  }
+
+  /* ── Font Families ── */
+  .font-display {
+    font-family: var(--font-display);
+  }
+
+  .font-persian {
+    font-family: var(--font-persian);
+  }
+
+  .font-code {
+    font-family: var(--font-code);
+  }
+
+  /* ── Gold Divider ── */
+  .divider-gold {
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--gold), transparent);
+    border: none;
+    opacity: 0.5;
+  }
+
+  /* ── Grain Texture Overlay ── */
+  .grain {
+    position: relative;
+  }
+
+  .grain::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    border-radius: inherit;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.035'/%3E%3C/svg%3E");
+    z-index: 1;
+  }
+
+  /* ── Glassmorphism Surface ── */
+  .glass {
+    background: var(--surface);
+    backdrop-filter: blur(16px) saturate(180%);
+    -webkit-backdrop-filter: blur(16px) saturate(180%);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+  }
+
+  .glass-raised {
+    background: var(--surface-raised);
+    backdrop-filter: blur(24px) saturate(200%);
+    -webkit-backdrop-filter: blur(24px) saturate(200%);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+  }
+
+  /* ── Luxury Card ── */
+  .card-luxury {
+    background: var(--surface);
+    border: 1px solid rgba(201, 168, 76, 0.15);
+    box-shadow: var(--shadow-card);
+    transition: box-shadow var(--duration-base) var(--ease-luxury),
+      transform var(--duration-base) var(--ease-luxury),
+      border-color var(--duration-base) var(--ease-luxury);
+  }
+
+  .card-luxury:hover {
+    box-shadow: var(--shadow-gold);
+    border-color: rgba(201, 168, 76, 0.4);
+    transform: translateY(-3px);
+  }
+
+  /* ── Uppercase Tracking (Label Style) ── */
+  .label-luxury {
+    font-size: 0.6875rem;
+    font-weight: 500;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--gold);
+    font-family: var(--font-code);
+  }
+
+  /* ── Smooth Transition Default ── */
+  .transition-luxury {
+    transition: all var(--duration-base) var(--ease-luxury);
+  }
+
+  .transition-luxury-slow {
+    transition: all var(--duration-slow) var(--ease-luxury);
+  }
+
+  /* ── Animated Gold Underline ── */
+  .underline-gold {
+    position: relative;
+    display: inline-block;
+  }
+
+  .underline-gold::after {
+    content: '';
+    position: absolute;
+    bottom: -2px;
+    right: 0;
+    width: 0;
+    height: 1px;
+    background: var(--gold);
+    transition: width var(--duration-base) var(--ease-luxury);
+  }
+
+  .underline-gold:hover::after {
+    width: 100%;
+    right: auto;
+    left: 0;
+  }
+
+  /* ── RTL helpers ── */
+  .rtl {
+    direction: rtl;
+  }
+
+  .ltr {
+    direction: ltr;
+  }
 }

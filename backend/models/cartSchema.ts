@@ -10,8 +10,6 @@ export interface ICartItem {
         hex: string;
     };
 
-    price: number;
-    discountPrice?: number;
 }
 
 export interface ICart extends Document {
@@ -42,14 +40,9 @@ const CartItemSchema = new Schema<ICartItem>(
             hex: String,
         },
 
-        price: {
-            type: Number,
-            required: true,
-        },
 
-        discountPrice: {
-            type: Number,
-        },
+
+
     },
     { _id: false }
 );

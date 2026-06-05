@@ -27,11 +27,13 @@ export default function ProductsPage() {
           <div>
 
             <h1 className="mt-1 text-3xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50">
-              All Products
+              همه محصولات
             </h1>
             {!loading && !error && (
               <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
-                {products.length} item{products.length !== 1 ? "s" : ""} available
+                {products.length} مورد {" "}
+                {/* {products.length !== 1 ? "s" : ""}  */}
+                {/* موجود */}
               </p>
             )}
           </div>
@@ -44,7 +46,7 @@ export default function ProductsPage() {
             className="shrink-0 gap-2 rounded-xl"
           >
             <RefreshCw className={`h-4 w-4 ${isFetching ? "animate-spin" : ""}`} />
-            refetch
+            دریافت مجدد
           </Button>
         </div>
 

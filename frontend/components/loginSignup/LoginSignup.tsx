@@ -20,11 +20,11 @@ function LoginSignup({ children
             </>
             <div className='flex gap-2 items-center'>
                 <Button asChild variant={"default"}>
-                    <Link href="/login"> Log in</Link>
+                    <Link href="/login"> ورود</Link>
                 </Button>
                 <small>or</small>
                 <Button asChild variant={"outline"}  >
-                    <Link href="/signup"> Sign up</Link>
+                    <Link href="/signup"> ثبت نام</Link>
                 </Button>
             </div>
         </div>

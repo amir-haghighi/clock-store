@@ -33,12 +33,12 @@ export default function RootLayout({
   return (
 
     <html
-      lang="en"
+      lang="fa" dir="rtl"
       suppressHydrationWarning
       className={`${poppins.className} h-full antialiased`}
     >
 
-      <body className="min-h-full flex flex-col">
+      <body className="min-h-full flex flex-col" >
 
         <Providers>
           <Toaster />

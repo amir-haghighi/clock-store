@@ -39,7 +39,7 @@ function SignupPage() {
             dataModified, {
 
             onSuccess: (data) => {
-                router.push("/")
+                router.back()
                 toast.success(data.message)
             },
             onError: (error) => {
@@ -144,7 +144,7 @@ function SignupPage() {
                                     </Field>
                                 )}
                             />
-                            <Button type="submit" >Sign up</Button>
+                            <Button type="submit" >ثبت نام</Button>
                         </FieldGroup>
 
                     </form>
@@ -153,7 +153,7 @@ function SignupPage() {
                 <CardFooter className='justify-between '>
                     <small>Already have an account ? </small>
                     <Button asChild variant={"outline"} size="sm">
-                        <Link href="/login">Log in</Link>
+                        <Link href="/login">ورود</Link>
                     </Button>
                 </CardFooter>
             </Card >

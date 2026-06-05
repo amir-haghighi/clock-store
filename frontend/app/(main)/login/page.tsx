@@ -43,7 +43,7 @@ function LoginPage() {
             {
                 onSuccess: (data) => {
                     toast.success(data.message);
-                    router.push("/")
+                    router.back()
                 },
 
                 onError: (err: any) => {
@@ -120,7 +120,7 @@ function LoginPage() {
                                     </Field>
                                 )}
                             />
-                            <Button type="submit" >Log in</Button>
+                            <Button type="submit" >ورود</Button>
                         </FieldGroup>
 
                     </form>

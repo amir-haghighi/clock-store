@@ -22,8 +22,8 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 import { useProductBySlug } from "@/hooks/useProducts";
-import { useCart } from "@/hooks/useCart";
 import toast from "react-hot-toast";
+import { useCartStore } from "@/store/useCartStore";
 
 export default function ProductPage() {
     const params = useParams();
@@ -33,7 +33,7 @@ export default function ProductPage() {
     const [selectedColor, setSelectedColor] = useState({ name: "", hex: "" });
     const [quantity, setQuantity] = useState(1);
     const [wishlisted, setWishlisted] = useState(false);
-    const { addToCartOffline } = useCart()
+    const addItem = useCartStore((state) => state.addItem);
     console.log({ product })
     useEffect(() => {
         if (!!product) {
@@ -84,7 +84,7 @@ export default function ProductPage() {
 
     const addToCartHandler = () => {
 
-        addToCartOffline(
+        addItem(
             {
                 price: product.price,
                 discountPrice: product?.discountPrice,
@@ -361,7 +361,7 @@ export default function ProductPage() {
                                         ${product.price.toFixed(2)}
                                     </span>
                                     <Badge className="bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400 hover:bg-emerald-100 font-semibold">
-                                        {((+product.price - product.discountPrice) / product.price).toFixed(2) * 100}% off
+                                        {((+product.price - (+product.discountPrice)) / (+product.price)).toFixed(2) * 100}% off
                                     </Badge>
                                 </>
                             )}
