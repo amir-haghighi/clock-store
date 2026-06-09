@@ -135,7 +135,7 @@ export const signup = async (req: Request, res: ResType) => {
             },
             process.env.JWT_SECRET!,
             {
-                expiresIn: "15m",
+                expiresIn: "1h",
             }
         );
 
@@ -222,7 +222,7 @@ export const login = async (req: Request, res: ResType) => {
         const accessToken = jwt.sign(
             { id: user._id },
             process.env.JWT_SECRET!,
-            { expiresIn: "15m" }
+            { expiresIn: "1h" }
         );
         const refreshToken = jwt.sign(
             { id: user._id },

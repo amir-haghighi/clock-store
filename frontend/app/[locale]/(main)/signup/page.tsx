@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { WatchIcon } from 'lucide-react'
 import { Controller, useForm } from "react-hook-form"
-import Link from 'next/link'
+import { Link } from '@/i18n/navigation'
 import * as z from "zod"
 import { Field, FieldError, FieldGroup, FieldLabel } from '@/components/ui/field'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -14,9 +14,11 @@ import { PasswordInput } from '@/components/ui/password-input'
 import { useRouter } from 'next/navigation'
 import toast from 'react-hot-toast'
 import { useSignup } from '@/hooks/useSignup'
+import { useTranslations } from 'next-intl'
 
 
 function SignupPage() {
+    const t = useTranslations("auth")
     const { mutate: signup } = useSignup()
     const router = useRouter()
     const form = useForm<z.infer<typeof formSchema>>({
@@ -55,10 +57,10 @@ function SignupPage() {
             <Card className='w-full max-w-md  '>
                 <CardHeader>
                     <CardTitle className='font-bold text-2xl mb-2'>
-                        Signup
+                        {t("signup")}
                     </CardTitle>
                     <CardDescription>
-                        Signup for a new AmirWatch account
+                        {t("signupDescription")}
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -70,7 +72,7 @@ function SignupPage() {
                                 render={({ field, fieldState }) => (
                                     <Field data-invalid={fieldState.invalid}>
                                         <FieldLabel htmlFor="name">
-                                            name
+                                            {t("name")}
                                         </FieldLabel>
                                         <Input
                                             {...field}
@@ -90,7 +92,7 @@ function SignupPage() {
                                 render={({ field, fieldState }) => (
                                     <Field data-invalid={fieldState.invalid}>
                                         <FieldLabel htmlFor="email">
-                                            Email
+                                            {t("email")}
                                         </FieldLabel>
                                         <Input
                                             {...field}
@@ -110,7 +112,7 @@ function SignupPage() {
                                 render={({ field, fieldState }) => (
                                     <Field data-invalid={fieldState.invalid}>
                                         <FieldLabel htmlFor="password">
-                                            Password
+                                            {t("password")}
                                         </FieldLabel>
                                         <PasswordInput
                                             {...field}
@@ -130,7 +132,7 @@ function SignupPage() {
                                 render={({ field, fieldState }) => (
                                     <Field data-invalid={fieldState.invalid}>
                                         <FieldLabel htmlFor="passwordConfirm">
-                                            Confirm Password
+                                            {t("passwordConfirm")}
                                         </FieldLabel>
                                         <PasswordInput
                                             {...field}
@@ -144,16 +146,16 @@ function SignupPage() {
                                     </Field>
                                 )}
                             />
-                            <Button type="submit" >ثبت نام</Button>
+                            <Button type="submit" >{t("signup")}</Button>
                         </FieldGroup>
 
                     </form>
                 </CardContent>
 
                 <CardFooter className='justify-between '>
-                    <small>Already have an account ? </small>
+                    <small>{t("alreadyHaveAccount")} </small>
                     <Button asChild variant={"outline"} size="sm">
-                        <Link href="/login">ورود</Link>
+                        <Link href="/login">{t("login")}</Link>
                     </Button>
                 </CardFooter>
             </Card >

@@ -1,39 +1,40 @@
 "use client";
 
-
 import { ProductCard } from "@/components/products/ProductCard";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useFeaturedProducts } from "@/hooks/useProducts";
 import { PackageOpen, RefreshCw, AlertCircle } from "lucide-react";
-import Loading from "./Loading";
+import Loading from "./loading";
 import { useSearchParams } from "next/navigation";
-/* ---------- Loading skeleton ---------- */
+import { useState } from "react";
+import { useTranslations } from "next-intl";
 
 /* ---------- Products Page ---------- */
 export default function ProductsPage() {
-  const searchParams = useSearchParams()
+  const t = useTranslations("products");
+  const searchParams = useSearchParams();
+  const [fetchingAnimation, setFetchingAnimation] = useState(false);
   const filters = Object.fromEntries(searchParams.entries());
+
   const { products, error, isEmpty, loading, isFetching, refetch } =
     useFeaturedProducts(filters);
 
-
   return (
-    <main className="min-h-screen">
-      <div className="mx-auto w-screen px-4 py-12 sm:px-6 lg:px-8">
+    <main className="min-h-screen ">
+      <div className="mx-auto w-screen px-4 py-12 sm:px-6 lg:px-8 ">
 
         {/* Page Header */}
         <div className="mb-10 flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
           <div>
 
             <h1 className="mt-1 text-3xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50">
-              همه محصولات
+              {t("title")}
             </h1>
+
             {!loading && !error && (
               <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
-                {products.length} مورد {" "}
-                {/* {products.length !== 1 ? "s" : ""}  */}
-                {/* موجود */}
+                {products.length} {t("items")}
               </p>
             )}
           </div>
@@ -41,12 +42,19 @@ export default function ProductsPage() {
           <Button
             variant="outline"
             size="sm"
-            onClick={refetch}
+            onClick={() => {
+              refetch();
+              setFetchingAnimation(true);
+              setTimeout(() => setFetchingAnimation(false), 1000);
+            }}
             disabled={loading}
             className="shrink-0 gap-2 rounded-xl"
           >
-            <RefreshCw className={`h-4 w-4 ${isFetching ? "animate-spin" : ""}`} />
-            دریافت مجدد
+            <RefreshCw
+              className={`h-4 w-4 ${isFetching || fetchingAnimation ? "animate-spin" : ""
+                }`}
+            />
+            {t("refetch")}
           </Button>
         </div>
 
@@ -56,10 +64,12 @@ export default function ProductsPage() {
             <AlertCircle className="h-10 w-10 text-red-400" />
             <div>
               <p className="font-semibold text-red-700 dark:text-red-400">
-                Failed to load products
+                {t("errorTitle")}
               </p>
               <p className="mt-1 text-sm text-red-500 dark:text-red-500">
-                {typeof error === "string" ? error : "Something went wrong. Please try again."}
+                {typeof error === "string"
+                  ? error
+                  : t("errorDescription")}
               </p>
             </div>
             <Button
@@ -69,7 +79,7 @@ export default function ProductsPage() {
               className="rounded-xl gap-2"
             >
               <RefreshCw className="h-4 w-4" />
-              Try Again
+              {t("tryAgain")}
             </Button>
           </div>
         )}
@@ -89,10 +99,10 @@ export default function ProductsPage() {
             <PackageOpen className="h-12 w-12 text-zinc-300 dark:text-zinc-600" />
             <div>
               <p className="font-semibold text-zinc-700 dark:text-zinc-300">
-                No products found
+                {t("emptyTitle")}
               </p>
               <p className="mt-1 text-sm text-zinc-400 dark:text-zinc-500">
-                Check back later or try refreshing.
+                {t("emptyDescription")}
               </p>
             </div>
             <Button
@@ -102,19 +112,17 @@ export default function ProductsPage() {
               className="rounded-xl gap-2"
             >
               <RefreshCw className="h-4 w-4" />
-              Refresh
+              {t("refresh")}
             </Button>
           </div>
         )}
 
         {/* Products grid */}
         {!loading && !error && !isEmpty && (
-          <div className="grid gap-0   grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4  xl:grid-cols-5 2xl:grid-cols-6">
-            {isEmpty ? <p>no products found!</p>
-              : products.map((product) => (
-                <ProductCard key={product._id} product={product} />
-              ))
-            }
+          <div className="grid gap-0 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6">
+            {products.map((product) => (
+              <ProductCard key={product._id} product={product} />
+            ))}
           </div>
         )}
       </div>

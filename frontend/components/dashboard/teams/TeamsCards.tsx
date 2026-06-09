@@ -1,7 +1,7 @@
 import { BadgeAlertIcon, BadgeCheckIcon, ChartPieIcon, PartyPopperIcon, StarIcon, UserCheck2Icon, UserIcon, UserRoundXIcon, UsersIcon } from 'lucide-react'
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '../../ui/card'
 import { Button } from '@/components/ui/button'
-import Link from 'next/link'
+import { Link } from '@/i18n/navigation'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { teamLeaders } from "./dommyTeamLeadersData"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -44,25 +44,25 @@ function TeamsCards() {
                     </CardTitle>
 
                 </CardHeader>
-                <CardContent className='flex  gap-4 flex-wrap w-[95%] '>
+                <CardContent className='flex  gap-4 flex-wrap w-[95%] '>  <TooltipProvider>
                     {teamLeaders.map(leader =>
-                        <TooltipProvider>
-                            < Tooltip key={`${leader.firstName}${leader.lastName}`}>
-                                <TooltipTrigger asChild>
-                                    <Avatar size='lg'>
-                                        {!!leader.avatar ? <Image src={leader.avatar} alt={`${leader.firstName} ${leader.lastName}`} className='rounded-full' />
-                                            : <AvatarFallback>
-                                                {leader.firstName[0]}{leader.lastName[0]}
-                                            </AvatarFallback>}
 
-                                    </Avatar>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                    {leader.firstName}{" "}{leader.lastName}
-                                </TooltipContent>
-                            </Tooltip>
-                        </TooltipProvider>)
-                    }
+                        < Tooltip key={`${leader.firstName}${leader.lastName}`}>
+                            <TooltipTrigger asChild>
+                                <Avatar size='lg'>
+                                    {!!leader.avatar ? <Image src={leader.avatar} alt={`${leader.firstName} ${leader.lastName}`} className='rounded-full' />
+                                        : <AvatarFallback>
+                                            {leader.firstName[0]}{leader.lastName[0]}
+                                        </AvatarFallback>}
+
+                                </Avatar>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                                {leader.firstName}{" "}{leader.lastName}
+                            </TooltipContent>
+                        </Tooltip>
+                    )
+                    }</TooltipProvider>
                 </CardContent>
 
             </Card>

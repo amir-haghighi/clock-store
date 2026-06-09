@@ -2,21 +2,18 @@ import mongoose, { Schema, Types, Document } from "mongoose";
 
 export interface ICartItem {
     productId: Types.ObjectId;
-
     quantity: number;
-
     selectedColor?: {
         name: string;
         hex: string;
     };
-
+    createdAt: Date;
+    updatedAt: Date;
 }
 
 export interface ICart extends Document {
     userId: Types.ObjectId;
-
     items: ICartItem[];
-
     createdAt: Date;
     updatedAt: Date;
 }
@@ -28,23 +25,20 @@ const CartItemSchema = new Schema<ICartItem>(
             ref: "Product",
             required: true,
         },
-
         quantity: {
             type: Number,
             required: true,
             min: 1,
         },
-
         selectedColor: {
             name: String,
             hex: String,
         },
 
-
-
-
+        updatedAt: Date,
+        createdAt: Date
     },
-    { _id: false }
+    { _id: false, timestamps: true }
 );
 
 const CartSchema = new Schema<ICart>(
@@ -55,17 +49,13 @@ const CartSchema = new Schema<ICart>(
             required: true,
             unique: true,
         },
-
         items: {
             type: [CartItemSchema],
             default: [],
         },
     },
-    {
-        timestamps: true,
-    }
+    { timestamps: true }
 );
 
 export const Cart =
-    mongoose.models.Cart ||
-    mongoose.model<ICart>("Cart", CartSchema);
+    mongoose.models.Cart || mongoose.model<ICart>("Cart", CartSchema);

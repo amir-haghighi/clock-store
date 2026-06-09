@@ -18,14 +18,18 @@ import {
     Check,
     ChevronRight,
 } from "lucide-react";
-import Link from "next/link";
+import { Link } from "@/i18n/navigation";
 import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 import { useProductBySlug } from "@/hooks/useProducts";
 import toast from "react-hot-toast";
 import { useCartStore } from "@/store/useCartStore";
+import { useTranslations, useLocale } from "next-intl";
+import Loading from "../loading";
 
 export default function ProductPage() {
+    const t = useTranslations("product");
+    const locale = useLocale();
     const params = useParams();
     const slug = params?.slug as string;
     const { product, loading, error } = useProductBySlug(slug);
@@ -34,81 +38,69 @@ export default function ProductPage() {
     const [quantity, setQuantity] = useState(1);
     const [wishlisted, setWishlisted] = useState(false);
     const addItem = useCartStore((state) => state.addItem);
-    console.log({ product })
+
     useEffect(() => {
         if (!!product) {
-            setSelectedColor(product.colors[0])
+            setSelectedColor(product.colors[0]);
         }
-    }, [product])
+    }, [product]);
 
     // ── Loading ──────────────────────────────────────────────────────────────
-    if (loading) {
-        return (
-            <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950 flex items-center justify-center">
-                <div className="flex flex-col items-center gap-4">
-                    <div className="relative h-12 w-12">
-                        <div className="absolute inset-0 rounded-full border-2 border-zinc-200 dark:border-zinc-800" />
-                        <div className="absolute inset-0 rounded-full border-t-2 border-zinc-900 dark:border-zinc-100 animate-spin" />
-                    </div>
-                    <p className="text-sm text-zinc-500 tracking-widest uppercase font-medium">
-                        Loading
-                    </p>
-                </div>
-            </div>
-        );
-    }
+    if (loading) { return (<Loading />) }
 
     // ── Error ────────────────────────────────────────────────────────────────
     if (error || !product) {
         return (
             <div className="text-center space-y-4 px-4">
                 <Package className="mx-auto h-16 w-16 text-zinc-300 dark:text-zinc-700" />
-                <h2 className=" font-semibold text-zinc-800 dark:text-zinc-200">
-                    Product not found
+                <h2 className="font-semibold text-zinc-800 dark:text-zinc-200">
+                    {t("notFoundTitle")}
                 </h2>
                 <p className="text-zinc-500 text-sm max-w-xs mx-auto">
-                    {error?.message ?? "This product doesn't exist or has been removed."}
+                    {error?.message ?? t("notFoundDescription")}
                 </p>
                 <Button asChild variant="outline" className="mt-2">
                     <Link href="/">
                         <ChevronLeft className="mr-1 h-4 w-4" />
-                        Back to products
+                        {t("backToProducts")}
                     </Link>
                 </Button>
-
             </div>
         );
     }
 
-    // ── handlers ───────────────────────────────────────────────────────
-
+    // ── handlers ─────────────────────────────────────────────────────────────
     const addToCartHandler = () => {
+        addItem({
+            price: product.price,
+            discountPrice: product?.discountPrice,
+            brand: product.brand,
+            image: product.images[0],
+            slug: product.slug,
+            stock: product.stock,
+            title: product.title,
+            productId: product._id,
+            quantity,
+            selectedColor,
+        });
+        toast.success(
+            <div>
+                {t("addedToCart")}{" "}
+                <Link href="/cart" className="text-primary underline">
+                    {t("cart")}
+                </Link>
+            </div>
+        );
+    };
 
-        addItem(
-            {
-                price: product.price,
-                discountPrice: product?.discountPrice,
-                brand: product.brand,
-                image: product.images[0],
-                slug: product.slug,
-                stock: product.stock,
-                title: product.title,
-                productId: product._id,
-                quantity,
-                selectedColor,
-            }
-        )
-        toast.success(<div>
-            Added to cart! Go to <Link href="/cart" className="text-primary underline">CART</Link>
-        </div>)
-    }
-
-    // ── Derived values ───────────────────────────────────────────────────────
+    // ── Derived values ────────────────────────────────────────────────────────
     const API = process.env.NEXT_PUBLIC_API_URL ?? "";
     const hasDiscount =
         !!product.discountPrice && product.discountPrice < product.price;
     const discountPercent = hasDiscount
-        ? Math.round(((product.price - product.discountPrice) / product.price) * 100)
+        ? Math.round(
+            ((product.price - product.discountPrice) / product.price) * 100
+        )
         : 0;
     const inStock = product.stock > 0;
     const lowStock = product.stock > 0 && product.stock <= 5;
@@ -121,18 +113,25 @@ export default function ProductPage() {
         )
         : [];
 
-    // ── UI ───────────────────────────────────────────────────────────────────
+    const trustBadges = [
+        { icon: Shield, label: t("warranty") },
+        { icon: Truck, label: t("shipping") },
+        { icon: RotateCcw, label: t("returns") },
+    ];
+
+    // ── UI ────────────────────────────────────────────────────────────────────
     return (
-        <div className="min-h-screen bg-white  dark:bg-zinc-950 font-sans">
+        <div className="min-h-screen bg-white dark:bg-zinc-950 font-sans">
             {/* ── Breadcrumb ── */}
             <div className="border-b border-zinc-100 dark:border-zinc-800/60">
                 <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-3 flex items-center gap-2 text-xs text-zinc-400">
                     <Link href="/" className="hover:text-zinc-700 dark:hover:text-zinc-300 transition-colors">
-                        Home
+                        {t("home")}
                     </Link>
                     <ChevronRight className="h-3 w-3" />
                     <Link href={`/?category=${product.category}`}>
-                        <span className="capitalize text-zinc-500 dark:text-zinc-400">{product.category}
+                        <span className="capitalize text-zinc-500 dark:text-zinc-400">
+                            {product.category}
                         </span>
                     </Link>
                     <ChevronRight className="h-3 w-3" />
@@ -144,13 +143,12 @@ export default function ProductPage() {
 
             {/* ── Main grid ── */}
             <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-10 lg:py-8">
-                <div className="grid grid-cols-1  lg:grid-cols-3 gap-12 xl:gap-20">
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
 
                     {/* ── Left: image gallery ── */}
-                    <div className="flex  ">
-                        {/* Thumbnails */}
+                    <div className="flex">
                         {product.images.length > 1 && (
-                            <div className="hidden sm:flex flex-col gap-2 w-24  overflow-y-auto shrink-0">
+                            <div className="hidden sm:flex flex-col gap-2 w-24 overflow-y-auto shrink-0">
                                 {product.images.map((img: string, i: number) => (
                                     <button
                                         key={i}
@@ -172,7 +170,6 @@ export default function ProductPage() {
                             </div>
                         )}
 
-                        {/* Main image */}
                         <div className="relative flex-1 h-72 aspect-square dark:bg-zinc-900 rounded-2xl overflow-hidden group">
                             {product.images.length > 0 ? (
                                 <img
@@ -186,7 +183,6 @@ export default function ProductPage() {
                                 </div>
                             )}
 
-                            {/* Discount badge */}
                             {hasDiscount && (
                                 <div className="absolute left-4 top-4">
                                     <Badge className="bg-rose-500 hover:bg-rose-500 text-white font-bold text-sm px-2.5 py-1 rounded-lg shadow-lg">
@@ -195,16 +191,14 @@ export default function ProductPage() {
                                 </div>
                             )}
 
-                            {/* Out of stock overlay */}
                             {!inStock && (
                                 <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px] flex items-center justify-center">
                                     <span className="rounded-full bg-white/90 dark:bg-zinc-900/90 px-6 py-2 text-sm font-semibold text-zinc-800 dark:text-white shadow-xl">
-                                        Out of Stock
+                                        {t("outOfStock")}
                                     </span>
                                 </div>
                             )}
 
-                            {/* Wishlist button */}
                             <button
                                 onClick={() => setWishlisted(!wishlisted)}
                                 className="absolute right-4 top-4 h-9 w-9 rounded-full bg-white/90 dark:bg-zinc-900/80 shadow-md flex items-center justify-center backdrop-blur-sm hover:scale-110 transition-transform duration-200"
@@ -219,7 +213,6 @@ export default function ProductPage() {
                                 />
                             </button>
 
-                            {/* Mobile dots */}
                             {product.images.length > 1 && (
                                 <div className="absolute bottom-3 left-0 right-0 flex justify-center gap-1.5 sm:hidden">
                                     {product.images.map((_: string, i: number) => (
@@ -240,38 +233,29 @@ export default function ProductPage() {
                     </div>
 
                     {/* ── Right: product info ── */}
-                    <div className="flex flex-col  items-center lg:items-start  gap-6">
-                        {/* Brand & category */}
-                        <div className="flex  gap-2">
+                    <div className="flex flex-col items-center lg:items-start gap-6">
+                        <div className="flex gap-2">
                             <span className="text-sm font-semibold uppercase tracking-widest text-zinc-400 dark:text-zinc-500">
                                 {product.brand}
                             </span>
                             <span className="text-zinc-200 dark:text-zinc-700">·</span>
-                            <Badge
-                                variant="secondary"
-                                className="capitalize text-xs rounded-md font-medium"
-                            >
+                            <Badge variant="secondary" className="capitalize text-xs rounded-md font-medium">
                                 {product.category}
                             </Badge>
-                            <Badge
-                                variant="outline"
-                                className="capitalize text-xs rounded-md ml-auto"
-                            >
+                            <Badge variant="outline" className="capitalize text-xs rounded-md ml-auto">
                                 {product.gender}
                             </Badge>
                         </div>
 
-                        {/* Title */}
                         <div className="flex flex-col items-center lg:items-start gap-2">
                             <h1 className="font-bold tracking-tight text-zinc-900 dark:text-zinc-50 leading-tight">
                                 {product.title}
                             </h1>
                             <p className="mt-1 text-sm text-zinc-400 dark:text-zinc-500">
-                                Model: {product.watchModel}
+                                {t("model")}: {product.watchModel}
                             </p>
                         </div>
 
-                        {/* Rating row */}
                         <div className="flex items-center gap-3">
                             <div className="flex items-center gap-0.5">
                                 {Array.from({ length: 5 }).map((_, i) => (
@@ -290,13 +274,11 @@ export default function ProductPage() {
                                 {(product.rating ?? 0).toFixed(1)}
                             </span>
                             <span className="text-sm text-zinc-400">
-                                ({product.numReviews ?? 0} reviews)
+                                ({product.numReviews ?? 0} {t("reviews")})
                             </span>
                         </div>
 
                         <Separator className="dark:border-zinc-800" />
-
-
 
                         {/* Stock status */}
                         <div className="flex items-center gap-2">
@@ -321,23 +303,16 @@ export default function ProductPage() {
                                 )}
                             >
                                 {!inStock
-                                    ? "Out of stock"
+                                    ? t("outOfStock")
                                     : lowStock
-                                        ? `Only ${product.stock} left in stock`
-                                        : "In stock"}
+                                        ? `${t("onlyLeft", { count: product.stock })}`
+                                        : t("inStock")}
                             </span>
                         </div>
 
-
-
-
                         {/* Trust badges */}
                         <div className="grid grid-cols-3 gap-3 pt-2">
-                            {[
-                                { icon: Shield, label: "2 Year Warranty" },
-                                { icon: Truck, label: "Free Shipping" },
-                                { icon: RotateCcw, label: "30-Day Returns" },
-                            ].map(({ icon: Icon, label }) => (
+                            {trustBadges.map(({ icon: Icon, label }) => (
                                 <div
                                     key={label}
                                     className="flex flex-col items-center gap-1.5 rounded-xl border border-zinc-100 dark:border-zinc-800 p-3 text-center bg-zinc-50/60 dark:bg-zinc-900/40"
@@ -350,10 +325,9 @@ export default function ProductPage() {
                             ))}
                         </div>
                     </div>
-                    {/* Quantity + Add to Cart */}
-                    <div className="flex flex-col items-center lg:items-start justify-end gap-3 mt-2">
-                        {/* discount price */}
 
+                    {/* ── Quantity + Add to Cart ── */}
+                    <div className="flex flex-col items-center lg:items-start justify-end gap-3 mt-2">
                         <div className="flex items-center gap-3">
                             {hasDiscount && (
                                 <>
@@ -361,23 +335,28 @@ export default function ProductPage() {
                                         ${product.price.toFixed(2)}
                                     </span>
                                     <Badge className="bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400 hover:bg-emerald-100 font-semibold">
-                                        {((+product.price - (+product.discountPrice)) / (+product.price)).toFixed(2) * 100}% off
+                                        {Math.round(
+                                            ((Number(product.price) - Number(product.discountPrice)) /
+                                                Number(product.price)) *
+                                            100
+                                        )}
+                                        % {t("off")}
                                     </Badge>
                                 </>
                             )}
                         </div>
-                        {/* price */}
-                        <div>
 
+                        <div>
                             <span className="text-3xl font-extrabold text-zinc-900 dark:text-zinc-50">
                                 ${hasDiscount ? product.discountPrice : product.price}
                             </span>
                         </div>
+
                         {/* Color selector */}
                         {product.colors?.length > 0 && (
                             <div>
                                 <p className="text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2.5">
-                                    Color:{" "}
+                                    {t("color")}:{" "}
                                     <span className="font-normal text-zinc-500">
                                         {selectedColor.name}
                                     </span>
@@ -398,14 +377,7 @@ export default function ProductPage() {
                                                 style={{ backgroundColor: c.hex }}
                                             >
                                                 {selectedColor.name === c.name && (
-                                                    <Check
-                                                        className="h-3.5 w-3.5 drop-shadow"
-                                                    // style={{
-
-                                                    //     color:
-                                                    //         isLightColor(c.hex) ? "#18181b" : "#ffffff",
-                                                    // }}
-                                                    />
+                                                    <Check className="h-3.5 w-3.5 drop-shadow" />
                                                 )}
                                             </button>
                                         )
@@ -413,6 +385,7 @@ export default function ProductPage() {
                                 </div>
                             </div>
                         )}
+
                         {/* Qty stepper */}
                         <div className="flex items-center border border-zinc-200 dark:border-zinc-700 rounded-xl overflow-hidden">
                             <button
@@ -425,17 +398,14 @@ export default function ProductPage() {
                                 {quantity}
                             </span>
                             <button
-                                onClick={() =>
-                                    setQuantity(Math.min(product.stock, quantity + 1))
-                                }
+                                onClick={() => setQuantity(Math.min(product.stock, quantity + 1))}
                                 disabled={!inStock}
-                                className=" cursor-pointer h-11 w-12 flex items-center justify-center text-zinc-500 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors disabled:opacity-40"
+                                className="cursor-pointer h-11 w-12 flex items-center justify-center text-zinc-500 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors disabled:opacity-40"
                             >
                                 +
                             </button>
-
-
                         </div>
+
                         {/* Add to cart */}
                         <div className="flex items-center border border-zinc-200 dark:border-zinc-700 rounded-xl overflow-hidden">
                             <Button
@@ -445,26 +415,20 @@ export default function ProductPage() {
                                 onClick={addToCartHandler}
                             >
                                 <ShoppingCart className="h-4 w-4" />
-                                {!inStock ? "Out of Stock" : "Add to Cart"}
+                                {!inStock ? t("outOfStock") : t("addToCart")}
                             </Button>
                         </div>
-
                     </div>
-
                 </div>
 
-                {/* ── Tabs: Description / Specs / Reviews ── */}
+                {/* ── Tabs ── */}
                 <div className="mt-16 lg:mt-20">
                     <Tabs defaultValue="description">
                         <TabsList className="w-full justify-start gap-1 border-b border-zinc-100 dark:border-zinc-800 bg-transparent rounded-none h-auto pb-0 mb-8">
-                            {["description", "specifications", "reviews"].map((t) => (
-                                <TabsTrigger
-                                    key={t}
-                                    value={t}
-                                    className="cursor-pointer"
-                                >
-                                    {t}
-                                    {t === "reviews" && (
+                            {(["description", "specifications", "reviews"] as const).map((tab) => (
+                                <TabsTrigger key={tab} value={tab} className="cursor-pointer">
+                                    {t(tab)}
+                                    {tab === "reviews" && (
                                         <span className="ml-1.5 text-xs text-zinc-400">
                                             ({product.numReviews ?? 0})
                                         </span>
@@ -473,7 +437,6 @@ export default function ProductPage() {
                             ))}
                         </TabsList>
 
-                        {/* Description */}
                         <TabsContent value="description" className="mt-0">
                             <div className="max-w-3xl">
                                 <p className="text-zinc-600 dark:text-zinc-400 leading-relaxed text-base">
@@ -482,12 +445,9 @@ export default function ProductPage() {
                             </div>
                         </TabsContent>
 
-                        {/* Specifications */}
                         <TabsContent value="specifications" className="mt-0">
                             {specs.length === 0 ? (
-                                <p className="text-zinc-400 text-sm">
-                                    No specifications available.
-                                </p>
+                                <p className="text-zinc-400 text-sm">{t("noSpecs")}</p>
                             ) : (
                                 <div className="max-w-2xl divide-y divide-zinc-100 dark:divide-zinc-800 border border-zinc-100 dark:border-zinc-800 rounded-xl overflow-hidden">
                                     {specs.map(([key, value]) => (
@@ -507,16 +467,14 @@ export default function ProductPage() {
                             )}
                         </TabsContent>
 
-                        {/* Reviews */}
                         <TabsContent value="reviews" className="mt-0">
                             {!product.reviews || product.reviews.length === 0 ? (
                                 <div className="text-center py-12">
                                     <Star className="mx-auto h-10 w-10 text-zinc-200 dark:text-zinc-700 mb-3" />
-                                    <p className="text-zinc-400 text-sm">No reviews yet.</p>
+                                    <p className="text-zinc-400 text-sm">{t("noReviews")}</p>
                                 </div>
                             ) : (
                                 <div className="space-y-5 max-w-3xl">
-                                    {/* Summary bar */}
                                     <div className="flex items-center gap-6 p-5 rounded-xl bg-zinc-50 dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800">
                                         <div className="text-center">
                                             <p className="text-5xl font-extrabold text-zinc-900 dark:text-zinc-50">
@@ -536,12 +494,11 @@ export default function ProductPage() {
                                                 ))}
                                             </div>
                                             <p className="text-xs text-zinc-400 mt-1">
-                                                {product.numReviews} reviews
+                                                {product.numReviews} {t("reviews")}
                                             </p>
                                         </div>
                                     </div>
 
-                                    {/* Review cards */}
                                     {product.reviews.map(
                                         (r: {
                                             _id: string;
@@ -567,7 +524,7 @@ export default function ProductPage() {
                                                             </p>
                                                             <p className="text-xs text-zinc-400">
                                                                 {new Date(r.createdAt).toLocaleDateString(
-                                                                    "en-US",
+                                                                    locale === "fa" ? "fa-IR" : "en-US",
                                                                     {
                                                                         year: "numeric",
                                                                         month: "short",
@@ -607,7 +564,6 @@ export default function ProductPage() {
     );
 }
 
-// ── Helper ────────────────────────────────────────────────────────────────────
 function isLightColor(hex: string): boolean {
     const h = hex.replace("#", "");
     const r = parseInt(h.substring(0, 2), 16);

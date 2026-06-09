@@ -116,7 +116,6 @@ export default function ContactPage() {
         setIsSubmitting(true);
         // Simulate API call
         await new Promise((r) => setTimeout(r, 1500));
-        console.log(values);
         toast.success("we received your message and will contact you shotly"
         );
         form.reset();
@@ -170,7 +169,8 @@ export default function ContactPage() {
                                     <h5>{title}</h5>
                                 </CardTitle>
                             </CardHeader>
-                            {lines.map(({ text, href }) => {
+                            {lines.map(({ text, href }, index) => {
+
                                 const tag = href ?
 
                                     <a href={href} className="text-muted-foreground text-sm  hover:underline">
@@ -181,7 +181,7 @@ export default function ContactPage() {
                                         {text}
                                     </p>
                                 return (
-                                    <CardContent className="flex flex-col">
+                                    <CardContent className="flex flex-col" key={index}>
                                         {tag}
                                     </CardContent>
 

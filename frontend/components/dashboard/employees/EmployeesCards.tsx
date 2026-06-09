@@ -1,7 +1,7 @@
 import { BadgeAlertIcon, BadgeCheckIcon, PartyPopperIcon, UserCheck2Icon, UserIcon, UserRoundXIcon } from 'lucide-react'
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '../../ui/card'
 import { Button } from '@/components/ui/button'
-import Link from 'next/link'
+import { Link } from '@/i18n/navigation'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import cm from '@/public/images/cm.jpg'
 import Image from 'next/image';

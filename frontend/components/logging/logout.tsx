@@ -20,7 +20,7 @@ export function Logout() {
     }
     return (
         <Button onClick={onLogoutHandle} className='bg-muted text-foreground'>
-            <span> Log out</span>
+            <span>خروج</span>
             <LogOutIcon />
         </Button>
     )

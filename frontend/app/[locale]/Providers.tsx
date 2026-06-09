@@ -5,8 +5,17 @@ import { QueryClientProvider } from '@tanstack/react-query'
 import { ThemeProvider } from 'next-themes'
 import { ReactNode } from 'react'
 import { Provider } from 'react-redux'
-type Props = { children: ReactNode }
-function Providers({ children }: Props) {
+import { NextIntlClientProvider } from 'next-intl';
+type Props = {
+    children: React.ReactNode;
+    locale: string;
+    messages: any;
+}
+function Providers({
+    children,
+    locale,
+    messages
+}: Props) {
     return (
         <ThemeProvider
             attribute="class"
@@ -16,13 +25,12 @@ function Providers({ children }: Props) {
         >
             <Provider store={store}>
                 <QueryClientProvider client={queryClient} >
-
-
-
-
-                    {children}
-
-
+                    <NextIntlClientProvider
+                        locale={locale}
+                        messages={messages}
+                    >
+                        {children}
+                    </NextIntlClientProvider>
                 </QueryClientProvider>
             </Provider>
         </ThemeProvider>

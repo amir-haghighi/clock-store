@@ -6,6 +6,7 @@ import {
     updateCartItem,
     removeCartItem,
     clearCart,
+    mergeCart,
 } from "../controllers/cartController.js";
 import { protect } from "../controllers/protectController.js";
 
@@ -23,5 +24,7 @@ cartRouter.patch("/items/:productId", updateCartItem);
 cartRouter.delete("/items/:productId", removeCartItem);
 
 cartRouter.delete("/", clearCart);
+
+cartRouter.post("/merge", mergeCart);  // ← اضافه شد
 
 export default cartRouter;

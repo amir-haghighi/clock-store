@@ -1,169 +1,214 @@
 import type { Request } from "express";
 import type { ResType } from "../types/res.js";
-import { Cart } from "../models/cartSchema.js";
+import { Cart, type ICartItem } from "../models/cartSchema.js";
+import Product from "../models/productSchema.js";
 
+// GET /api/cart
 export const getCart = async (req: Request, res: ResType) => {
-    const userId = req.user._id as string;
+    const userId = req.user._id;
 
-    let cart = await Cart.findOne({ userId: userId });
+    let cart = await Cart.findOne({ userId });
 
     if (!cart) {
-        cart = await Cart.create({
-            user: userId,
-            items: [],
-        });
+        cart = await Cart.create({ userId, items: [] });
     }
 
     res.status(200).json({
-        message: "successFully gotten the cart",
         status: "success",
-        data: cart
-    })
+        message: "Getting cart data was successful",
+        data: cart,
+    });
 };
 
+// POST /api/cart/items
 export const addToCart = async (req: Request, res: ResType) => {
     const userId = req.user._id;
-
-    const {
-        productId,
-        quantity,
-        selectedColor,
-    } = req.body;
+    const { productId, quantity, selectedColor } = req.body;
 
     const product = await Product.findById(productId);
 
     if (!product) {
         return res.status(404).json({
-            success: false,
+            status: "fail",
             message: "Product not found",
         });
     }
 
-    let cart = await Cart.findOne({ user: userId });
+    let serverCart = await Cart.findOne({ userId });
 
-    if (!cart) {
-        cart = await Cart.create({
-            user: userId,
-            items: [],
-        });
+    if (!serverCart) {
+        serverCart = await Cart.create({ userId, items: [] });
     }
 
-    const existingItem = cart.items.find(
+    const existingItem = serverCart.items.find(
         (item) =>
-            item.product.toString() === productId &&
+            item.productId.toString() === productId &&
             item.selectedColor?.name === selectedColor?.name
     );
 
     if (existingItem) {
-        existingItem.quantity += quantity;
+        existingItem.quantity = Math.min(quantity + existingItem.quantity, product.stock);
+        existingItem.updatedAt = new Date(); // backend owns time
     } else {
-        cart.items.push({
-            product: product._id,
-
+        serverCart.items.push({
+            productId: product._id,
             title: product.title,
-            image: product.image,
+            image: product.images[0],
             slug: product.slug,
             brand: product.brand,
-
-            quantity,
-            selectedColor,
-
             price: product.price,
             discountPrice: product.discountPrice,
+            quantity,
+            selectedColor,
+            updatedAt: new Date()
         });
     }
 
-    await cart.save();
+    await serverCart.save();
 
     res.status(200).json({
-        message: "The document saved ",
+        message: "Adding to cart was successful",
         status: "success",
-        data: cart
-    })
+        data: serverCart,
+    });
 };
-export const updateCartItem = async (req, res) => {
-    const userId = req.user._id;
 
+// PATCH /api/cart/items/:productId
+export const updateCartItem = async (req: Request, res: ResType) => {
+    const userId = req.user._id;
     const { productId } = req.params;
     const { quantity } = req.body;
 
-    const cart = await Cart.findOne({
-        user: userId,
-    });
+    const cart = await Cart.findOne({ userId });
 
     if (!cart) {
-        return res.status(404).json({
-            success: false,
-            message: "Cart not found",
-        });
+        return res.status(404).json({ status: "fail", message: "Cart not found" });
     }
 
-    const item = cart.items.find(
-        (i) => i.product.toString() === productId
-    );
+    const item = cart.items.find((i) => i.productId.toString() === productId);
 
     if (!item) {
-        return res.status(404).json({
-            success: false,
-            message: "Item not found",
-        });
+        return res.status(404).json({ status: "fail", message: "Item not found" });
     }
 
     item.quantity = quantity;
-
     await cart.save();
 
-    res.status(200).json({
-        success: true,
-        cart,
-    });
+    res.status(200).json({ status: "success", data: cart, message: "Updating the cart was successful" });
 };
-export const removeCartItem = async (req, res) => {
+
+// DELETE /api/cart/items/:productId
+export const removeCartItem = async (req: Request, res: ResType) => {
     const userId = req.user._id;
     const { productId } = req.params;
 
-    const cart = await Cart.findOne({
-        user: userId,
-    });
+    const cart = await Cart.findOne({ userId });
 
     if (!cart) {
-        return res.status(404).json({
-            success: false,
-            message: "Cart not found",
-        });
+        return res.status(404).json({ status: "fail", message: "Cart not found" });
     }
 
     cart.items = cart.items.filter(
-        (item) => item.product.toString() !== productId
+        (item) => item.productId.toString() !== productId
     );
 
     await cart.save();
 
-    res.status(200).json({
-        success: true,
-        cart,
-    });
+    res.status(200).json({ status: "success", data: cart, message: "Removing the cart was successful" });
 };
-export const clearCart = async (req, res) => {
+
+// DELETE /api/cart
+export const clearCart = async (req: Request, res: ResType) => {
     const userId = req.user._id;
 
-    const cart = await Cart.findOne({
-        user: userId,
-    });
+    const cart = await Cart.findOne({ userId });
 
     if (!cart) {
-        return res.status(404).json({
-            success: false,
-            message: "Cart not found",
-        });
+        return res.status(404).json({ status: "fail", message: "Cart not found" });
     }
 
     cart.items = [];
+    await cart.save();
+
+    res.status(200).json({ status: "success", message: "Cart cleared" });
+};
+
+// POST /api/cart/merge  ← جدید، هنگام login صدا زده میشه
+// POST /api/cart/merge
+export const mergeCart = async (req: Request, res: ResType) => {
+    const userId = req.user._id;
+    const localItems: ICartItem[] = req.body.items ?? [];
+
+    let cart = await Cart.findOne({ userId });
+
+    if (!cart) {
+
+        cart = await Cart.create({ userId, items: localItems });
+        return res.status(200).json({
+            status: "success",
+            data: cart,
+            message: "Cart created from local items",
+        });
+    }
+
+    // helper key برای جلوگیری از mismatch
+    const getKey = (item: ICartItem) =>
+        `${item.productId.toString()}-${item.selectedColor?.name ?? "default"}`;
+
+    const map = new Map<string, ICartItem>();
+
+    // 1. اول آیتم‌های سرور
+    for (const item of cart.items) {
+
+        map.set(getKey(item), item);
+
+    }
+
+    // 2. بعد merge آیتم‌های لوکال
+    for (const localItem of localItems) {
+        const product = await Product.findById(localItem.productId)
+        console.log("here")
+        console.log({ product })
+        if (!product) {
+            continue;
+        }
+        const key = getKey(localItem);
+        const existing = map.get(key);
+
+        if (!existing) {
+            // آیتم جدید
+            map.set(key, localItem);
+            continue;
+        }
+
+        // اگر updatedAt نداریم → فقط جمع quantity
+        if (!localItem.updatedAt || !existing.updatedAt) {
+            existing.quantity += Math.min(existing.quantity + localItem.quantity, product.stock);
+            continue;
+        }
+
+        const localTime = new Date(localItem.updatedAt).getTime();
+        const serverTime = new Date(existing.updatedAt).getTime();
+
+        if (localTime > serverTime) {
+            // لوکال جدیدتر است → replace کامل
+            map.set(key, {
+                ...localItem,
+            });
+        } else {
+            // سرور جدیدتر یا مساوی → merge quantity
+            existing.quantity = Math.min(localItem.quantity + existing.quantity, product.stock);
+        }
+    }
+
+    // 3. تبدیل Map به array
+    cart.items = Array.from(map.values());
 
     await cart.save();
 
-    res.status(200).json({
-        success: true,
-        message: "Cart cleared",
+    return res.status(200).json({
+        status: "success",
+        data: cart,
+        message: "Cart merged successfully",
     });
 };

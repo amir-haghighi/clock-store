@@ -1,6 +1,6 @@
 import { Button } from '@/components/ui/button'
 import { PersonStandingIcon, WatchIcon } from 'lucide-react'
-import Link from 'next/link'
+import { Link } from '@/i18n/navigation'
 function LoginSignup({ children
 }: Readonly<{
     children?: React.ReactNode;

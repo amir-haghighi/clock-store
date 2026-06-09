@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { WatchIcon } from 'lucide-react'
 import { Controller, useForm } from "react-hook-form"
-import Link from 'next/link'
+import { Link } from '@/i18n/navigation'
 import * as z from "zod"
 import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from '@/components/ui/field'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -11,7 +11,7 @@ import { Input } from '@/components/ui/input'
 import { PasswordInput } from '@/components/ui/password-input'
 import { useRouter } from 'next/navigation'
 import toast from 'react-hot-toast'
-import { useUser } from '@/hooks/useUser'
+import { useTranslations } from 'next-intl';
 import { useLogin } from '@/hooks/useLogin'
 
 const formSchema = z.object({
@@ -24,6 +24,7 @@ const formSchema = z.object({
 
 
 function LoginPage() {
+    const t = useTranslations('auth')
     const { mutate: login, isPending, error, data: res, context } = useLogin()
     const router = useRouter()
     const form = useForm<z.infer<typeof formSchema>>({
@@ -63,10 +64,10 @@ function LoginPage() {
             <Card className='w-full max-w-md  '>
                 <CardHeader>
                     <CardTitle className='font-bold text-2xl mb-2'>
-                        Login
+                        {t("login")}
                     </CardTitle>
                     <CardDescription>
-                        Login to your AmirWatch accounts
+                        {t("loginDescription")}
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -78,7 +79,7 @@ function LoginPage() {
                                 render={({ field, fieldState }) => (
                                     <Field data-invalid={fieldState.invalid}>
                                         <FieldLabel htmlFor="email">
-                                            Email
+                                            {t("email")}
                                         </FieldLabel>
                                         <Input
                                             {...field}
@@ -97,7 +98,7 @@ function LoginPage() {
                                 render={({ field, fieldState }) => (
                                     <Field data-invalid={fieldState.invalid}>
                                         <FieldLabel htmlFor="password">
-                                            password
+                                            {t("password")}
                                         </FieldLabel>
                                         <PasswordInput
                                             {...field}
@@ -110,26 +111,25 @@ function LoginPage() {
                                                     {field.value.length}/100 characters
                                                 </InputGroupText>
                                             </InputGroupAddon> */}
-                                        {!fieldState.invalid &&
-                                            <FieldDescription>
-                                                password : at least 8 characters , one Uppercase
-                                            </FieldDescription>}
+
                                         {fieldState.invalid && (
                                             <FieldError errors={[fieldState.error]} />
                                         )}
                                     </Field>
                                 )}
                             />
-                            <Button type="submit" >ورود</Button>
+                            <Button type="submit">
+                                {t("login")}
+                            </Button>
                         </FieldGroup>
 
                     </form>
                 </CardContent>
 
-                <CardFooter className='justify-between'>
-                    <small>Don't have an account ? </small>
+                <CardFooter className='justify-between '>
+                    <small>{t("noAccount")}</small>
                     <Button asChild variant={"outline"} size="sm">
-                        <Link href="/signup">Sing up</Link>
+                        <Link href="/signup">{t("signup")}</Link>
                     </Button>
                 </CardFooter>
             </Card >

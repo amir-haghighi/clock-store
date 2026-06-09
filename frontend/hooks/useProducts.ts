@@ -96,7 +96,6 @@ export const useFeaturedProducts = (filters: {}) => {
         queryKey: ["products", "featured", filters],
         queryFn: async () => {
             const params = new URLSearchParams(filters);
-            console.log(` ${params.toString()}`)
             const res = await fetch(`${API}/api/v1/products/?${params.toString()}`, {
                 credentials: "include",
             });
@@ -107,7 +106,6 @@ export const useFeaturedProducts = (filters: {}) => {
         staleTime: 1000 * 60 * 10,
         retry: false,
     });
-    console.log(query.data)
     return {
         isEmpty: !query?.data?.data,
         products: query.data?.data ?? [],

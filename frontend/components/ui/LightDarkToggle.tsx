@@ -8,6 +8,7 @@ type Props = {
 }
 function LightDarkToggle({ className }: Props) {
     const { setTheme, resolvedTheme } = useTheme()
+    const isDark = resolvedTheme === "dark"
     return (
         <TooltipProvider>
             <Tooltip>
@@ -20,8 +21,10 @@ function LightDarkToggle({ className }: Props) {
                     </Button>
                 </TooltipTrigger>
                 <TooltipContent>
-                    <span className='light:hidden dark:inline '>Enable light mode </span>
-                    <span className='light:inline dark:hidden'>Enable dark mode </span>
+                    <span className={` ${isDark ? "inline" : "hidden"} `}>
+                        Enable light mode
+                    </span>
+                    <span className={` ${isDark ? "hidden" : "inline"} `}>Enable dark mode </span>
                 </TooltipContent>
 
 

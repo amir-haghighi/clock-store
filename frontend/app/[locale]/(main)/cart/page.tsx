@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
+import { Link } from "@/i18n/navigation";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
@@ -9,74 +9,42 @@ import {
     ShoppingCart,
     Trash2,
     ChevronLeft,
-    ChevronRight,
     Package,
     Tag,
     ArrowRight,
     X,
-    CarTaxiFrontIcon,
-    ShoppingCartIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { CartItemType, useCartStore } from "@/store/useCartStore";
+import { useCartStore } from "@/store/useCartStore";
+import { useCart } from "@/hooks/useCart";
 import { useUser } from "@/hooks/useUser";
-import { useRouter } from "next/navigation";
+import { useRouter } from "@/i18n/navigation";
 import toast from "react-hot-toast";
-
-
-// ── Mock data (replace with your cart state / context) ────────────────────────
-
-// const cartItems: CartItem[] = [
-//     {
-//         id: "1",
-//         slug: "seiko-presage-cocktail-time",
-//         title: "Seiko Presage Cocktail Time",
-//         brand: "Seiko",
-//         image: "",
-//         price: 420,
-//         discountPrice: 349,
-//         color: { name: "Midnight Blue", hex: "#1e3a5f" },
-//         stock: 4,
-//         quantity: 1,
-//     },
-//     {
-//         id: "2",
-//         slug: "hamilton-khaki-field",
-//         title: "Hamilton Khaki Field Auto",
-//         brand: "Hamilton",
-//         image: "",
-//         price: 695,
-//         discountPrice: 0,
-//         color: { name: "Army Green", hex: "#4a5240" },
-//         stock: 10,
-//         quantity: 2,
-//     },
-// ];
+import { useTranslations } from "next-intl";
 
 const PROMO_CODES: Record<string, number> = {
     WATCH10: 10,
     VIP20: 20,
 };
 
-// ── Component ─────────────────────────────────────────────────────────────────
-
 export default function CartPage() {
+    const t = useTranslations("cart");
     const { isAuthenticated } = useUser();
-    const router = useRouter()
-    const { cartItems, addItem, removeItem } = useCartStore()
+    const router = useRouter();
+    const API = process.env.NEXT_PUBLIC_API_URL ?? "";
+
+    // عملیات local از store، cartItems از useCart
+    const { addItem, removeItem } = useCartStore();
+    const { cartItems, isLoading } = useCart();
+
     const [promoInput, setPromoInput] = useState("");
     const [appliedPromo, setAppliedPromo] = useState<string | null>(null);
     const [promoError, setPromoError] = useState("");
 
-    const API = process.env.NEXT_PUBLIC_API_URL ?? "";
-
-    // helpers
-    const effectivePrice = (item: CartItemType) =>
+    const effectivePrice = (item: { price: number; discountPrice?: number }) =>
         item.discountPrice && item.discountPrice < item.price && item.discountPrice > 0
             ? item.discountPrice
             : item.price;
-
-
 
     const subtotal = cartItems.reduce((s, it) => s + effectivePrice(it) * it.quantity, 0);
     const discount = appliedPromo ? (subtotal * PROMO_CODES[appliedPromo]) / 100 : 0;
@@ -89,17 +57,28 @@ export default function CartPage() {
             setAppliedPromo(code);
             setPromoError("");
         } else {
-            setPromoError("Invalid promo code");
+            setPromoError(t("invalidPromo"));
         }
     };
+
     const checkoutHandler = () => {
         if (!isAuthenticated) {
-            router.push("/login")
-            toast.error("ابتدا وارد شوید")
-            return
+            toast.error("ابتدا وارد شوید");
+            router.push("/login");
+            return;
         }
-        router.push("/checkout")
+        router.push("/checkout");
+    };
+
+    // ── Loading state ────────────────────────────────────────────────────────
+    if (isLoading) {
+        return (
+            <div className="min-h-screen bg-white dark:bg-zinc-950 flex items-center justify-center">
+                <div className="h-8 w-8 rounded-full border-2 border-zinc-300 border-t-zinc-900 animate-spin" />
+            </div>
+        );
     }
+
     // ── Empty state ──────────────────────────────────────────────────────────
     if (cartItems.length === 0) {
         return (
@@ -109,16 +88,14 @@ export default function CartPage() {
                 </div>
                 <div className="text-center">
                     <h2 className="text-2xl font-bold text-zinc-900 dark:text-zinc-50 tracking-tight">
-                        Your cart is empty
+                        {t("emptyTitle")}
                     </h2>
-                    <p className="mt-1 text-sm text-zinc-400">
-                        Looks like you haven't added any watches yet.
-                    </p>
+                    <p className="mt-1 text-sm text-zinc-400">{t("emptyDescription")}</p>
                 </div>
                 <Button asChild className="rounded-xl px-6">
                     <Link href="/">
                         <ChevronLeft className="mr-1 h-4 w-4" />
-                        Browse Watches
+                        {t("browseWatches")}
                     </Link>
                 </Button>
             </div>
@@ -128,7 +105,7 @@ export default function CartPage() {
     // ── Main ─────────────────────────────────────────────────────────────────
     return (
         <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950">
-            {/* Header bar */}
+            {/* Header */}
             <div className="border-b border-zinc-100 dark:border-zinc-800 bg-white dark:bg-zinc-950 sticky top-0 z-10">
                 <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 h-14 flex items-center gap-3">
                     <Link
@@ -138,11 +115,10 @@ export default function CartPage() {
                         <ChevronLeft className="h-5 w-5" />
                     </Link>
                     <h1 className="text-base font-semibold text-zinc-900 dark:text-zinc-50 tracking-tight">
-                        سبد خرید
-
+                        {t("title")}
                     </h1>
                     <Badge variant="secondary" className="ml-1 text-xs">
-                        {cartItems.reduce((s, it) => s + it.quantity, 0)} مورد
+                        {cartItems.reduce((s, it) => s + it.quantity, 0)} {t("items")}
                     </Badge>
                 </div>
             </div>
@@ -159,7 +135,7 @@ export default function CartPage() {
 
                             return (
                                 <div
-                                    key={item.productId}
+                                    key={`${item.productId}-${item.selectedColor?.name}`}
                                     className="group flex gap-4 bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-100 dark:border-zinc-800 p-4 transition-shadow hover:shadow-md"
                                 >
                                     {/* Image */}
@@ -193,25 +169,29 @@ export default function CartPage() {
                                                     {item.title}
                                                 </Link>
                                             </div>
+                                            {/* حذف کامل آیتم */}
                                             <button
-                                                onClick={() => removeItem(item)}
-                                                className="shrink-0 h-7 w-7 rounded-full flex items-center justify-center 
-                                                cursor-pointer text-zinc-300 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-all duration-150"
+                                                onClick={() => removeItem({ ...item, quantity: item.quantity })}
+                                                className="shrink-0 h-7 w-7 rounded-full flex items-center justify-center cursor-pointer text-zinc-300 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-all duration-150"
                                             >
-                                                <Trash2 className="h-3.5 w-3.5 " />
+                                                <Trash2 className="h-3.5 w-3.5" />
                                             </button>
                                         </div>
 
                                         {/* Color chip */}
-                                        <div className="flex items-center gap-1.5">
-                                            <span
-                                                className="h-3 w-3 rounded-full border border-zinc-200 dark:border-zinc-700"
-                                                style={{ backgroundColor: item.selectedColor?.hex }}
-                                            />
-                                            <span className="text-xs text-zinc-400">{item.selectedColor?.name}</span>
-                                        </div>
+                                        {item.selectedColor && (
+                                            <div className="flex items-center gap-1.5">
+                                                <span
+                                                    className="h-3 w-3 rounded-full border border-zinc-200 dark:border-zinc-700"
+                                                    style={{ backgroundColor: item.selectedColor.hex }}
+                                                />
+                                                <span className="text-xs text-zinc-400">
+                                                    {item.selectedColor.name}
+                                                </span>
+                                            </div>
+                                        )}
 
-                                        {/* Price + qty */}
+                                        {/* Price */}
                                         <div className="mt-auto flex items-center justify-between pt-2">
                                             <div className="flex items-baseline gap-1.5">
                                                 <span className="text-base font-bold text-zinc-900 dark:text-zinc-50">
@@ -224,12 +204,12 @@ export default function CartPage() {
                                                 )}
                                             </div>
                                         </div>
+
                                         {/* Qty stepper */}
-                                        <div className="flex items-center border  mr-auto border-zinc-200 dark:border-zinc-700 rounded-lg overflow-hidden">
+                                        <div className="flex items-center border mr-auto border-zinc-200 dark:border-zinc-700 rounded-lg overflow-hidden">
                                             <button
                                                 onClick={() => removeItem({ ...item, quantity: 1 })}
                                                 className="h-7 w-7 flex items-center justify-center text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors text-base leading-none cursor-pointer"
-
                                             >
                                                 −
                                             </button>
@@ -243,7 +223,6 @@ export default function CartPage() {
                                             >
                                                 +
                                             </button>
-
                                         </div>
                                     </div>
                                 </div>
@@ -255,13 +234,12 @@ export default function CartPage() {
                     <div className="lg:sticky lg:top-20 h-fit">
                         <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-100 dark:border-zinc-800 p-6 flex flex-col gap-5">
                             <h2 className="text-sm font-semibold uppercase tracking-widest text-zinc-500 dark:text-zinc-400">
-                                Order Summary
+                                {t("orderSummary")}
                             </h2>
 
-                            {/* Line items */}
                             <div className="flex flex-col gap-3 text-sm">
                                 <div className="flex justify-between text-zinc-600 dark:text-zinc-400">
-                                    <span>Subtotal</span>
+                                    <span>{t("subtotal")}</span>
                                     <span className="font-medium text-zinc-900 dark:text-zinc-50">
                                         ${subtotal.toFixed(2)}
                                     </span>
@@ -270,28 +248,33 @@ export default function CartPage() {
                                     <div className="flex justify-between text-emerald-600 dark:text-emerald-400">
                                         <span className="flex items-center gap-1">
                                             <Tag className="h-3.5 w-3.5" />
-                                            Promo ({appliedPromo})
+                                            {t("promo")} ({appliedPromo})
                                         </span>
                                         <span>−${discount.toFixed(2)}</span>
                                     </div>
                                 )}
                                 <div className="flex justify-between text-zinc-600 dark:text-zinc-400">
-                                    <span>Shipping</span>
-                                    <span className={cn("font-medium", shipping === 0 ? "text-emerald-600 dark:text-emerald-400" : "text-zinc-900 dark:text-zinc-50")}>
-                                        {shipping === 0 ? "Free" : `$${shipping.toFixed(2)}`}
+                                    <span>{t("shipping")}</span>
+                                    <span
+                                        className={cn(
+                                            "font-medium",
+                                            shipping === 0
+                                                ? "text-emerald-600 dark:text-emerald-400"
+                                                : "text-zinc-900 dark:text-zinc-50"
+                                        )}
+                                    >
+                                        {shipping === 0 ? t("free") : `$${shipping.toFixed(2)}`}
                                     </span>
                                 </div>
                                 {shipping > 0 && (
-                                    <p className="text-xs text-zinc-400">
-                                        Free shipping on orders over $500
-                                    </p>
+                                    <p className="text-xs text-zinc-400">{t("freeShippingHint")}</p>
                                 )}
                             </div>
 
                             <Separator className="dark:border-zinc-800" />
 
                             <div className="flex justify-between font-bold text-zinc-900 dark:text-zinc-50">
-                                <span>Total</span>
+                                <span>{t("total")}</span>
                                 <span className="text-xl">${total.toFixed(2)}</span>
                             </div>
 
@@ -299,14 +282,20 @@ export default function CartPage() {
                             <div className="flex gap-2">
                                 <input
                                     value={promoInput}
-                                    onChange={(e) => { setPromoInput(e.target.value); setPromoError(""); }}
+                                    onChange={(e) => {
+                                        setPromoInput(e.target.value);
+                                        setPromoError("");
+                                    }}
                                     onKeyDown={(e) => e.key === "Enter" && applyPromo()}
-                                    placeholder="Promo code"
+                                    placeholder={t("promoPlaceholder")}
                                     className="flex-1 h-9 px-3 text-sm rounded-lg border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 text-zinc-800 dark:text-zinc-200 placeholder:text-zinc-400 focus:outline-none focus:ring-1 focus:ring-zinc-400"
                                 />
                                 {appliedPromo ? (
                                     <button
-                                        onClick={() => { setAppliedPromo(null); setPromoInput(""); }}
+                                        onClick={() => {
+                                            setAppliedPromo(null);
+                                            setPromoInput("");
+                                        }}
                                         className="h-9 w-9 flex items-center justify-center rounded-lg border border-zinc-200 dark:border-zinc-700 text-zinc-400 hover:text-rose-500 transition-colors"
                                     >
                                         <X className="h-4 w-4" />
@@ -318,7 +307,7 @@ export default function CartPage() {
                                         onClick={applyPromo}
                                         className="h-9 rounded-lg px-3 text-xs font-semibold"
                                     >
-                                        Apply
+                                        {t("apply")}
                                     </Button>
                                 )}
                             </div>
@@ -328,25 +317,22 @@ export default function CartPage() {
 
                             {/* CTA */}
                             <Button
-                                asChild
                                 size="lg"
+                                onClick={checkoutHandler}
                                 className="w-full rounded-xl font-semibold gap-2 bg-zinc-900 hover:bg-zinc-700 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-300 transition-all duration-200 shadow-md hover:shadow-lg"
                             >
-                                <Button onClick={checkoutHandler}>
-                                    Proceed to Checkout
-                                    <ArrowRight className="h-4 w-4" />
-                                </Button>
+                                {t("checkout")}
+                                <ArrowRight className="h-4 w-4" />
                             </Button>
 
                             <Link
                                 href="/"
                                 className="text-center text-xs text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 transition-colors"
                             >
-                                ← Continue Shopping
+                                {t("continueShopping")}
                             </Link>
                         </div>
                     </div>
-
                 </div>
             </div>
         </div>

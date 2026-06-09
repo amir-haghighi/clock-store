@@ -1,7 +1,7 @@
 import MenuItems from './MenuItems'
 import MenuTitle from './MenuTitle'
 import { Avatar, AvatarFallback } from '../ui/avatar'
-import Link from 'next/link'
+import { Link } from '@/i18n/navigation'
 import LightDarkToggle from '../ui/LightDarkToggle'
 import { ClassNameValue } from 'tailwind-merge'
 import { cn } from '@/lib/utils'

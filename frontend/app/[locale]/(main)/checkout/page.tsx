@@ -103,6 +103,7 @@ export default function CheckoutPage() {
     const total = subtotal - discount + deliveryCost;
 
     function applyDiscount() {
+
         if (discountInput.trim().toUpperCase() === "KRONO10") {
             setDiscountApplied(true);
             toast.success("کد تخفیف اعمال شد! ۱۰٪ تخفیف");
@@ -114,7 +115,6 @@ export default function CheckoutPage() {
     async function onSubmit(values: CheckoutValues) {
         setIsSubmitting(true);
         await new Promise(r => setTimeout(r, 2000));
-        console.log(values, { total });
         // Redirect to Shaparak gateway (simulated)
         toast.success("در حال انتقال به درگاه شاپرک...");
         setIsSubmitting(false);
@@ -170,7 +170,7 @@ export default function CheckoutPage() {
                                             render={({ field, fieldState }) => (
                                                 <Field>
                                                     <FieldLabel>نام *</FieldLabel>
-                                                    <Input placeholder="علی" {...field} />
+                                                    <Input placeholder="" {...field} />
                                                     {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
                                                 </Field>
                                             )}
@@ -181,7 +181,7 @@ export default function CheckoutPage() {
                                             render={({ field, fieldState }) => (
                                                 <Field>
                                                     <FieldLabel>نام خانوادگی *</FieldLabel>
-                                                    <Input placeholder="محمدی" {...field} />
+                                                    <Input placeholder="" {...field} />
                                                     {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
                                                 </Field>
                                             )}
@@ -201,41 +201,11 @@ export default function CheckoutPage() {
                                                 </Field>
                                             )}
                                         />
-                                        <Controller
-                                            control={form.control}
-                                            name="email"
-                                            render={({ field, fieldState }) => (
-                                                <Field>
-                                                    <FieldLabel>ایمیل *</FieldLabel>
-                                                    <Input placeholder="ali@example.com" type="email" {...field} className="ltr text-left placeholder:text-right" />
-                                                    {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
-                                                </Field>
-                                            )}
-                                        />
-                                    </div>
 
-                                    {/* Province / City */}
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                        <Controller
-                                            control={form.control}
-                                            name="province"
-                                            render={({ field, fieldState }) => (
-                                                <Field>
-                                                    <FieldLabel>استان *</FieldLabel>
-                                                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                                        <SelectTrigger className="w-full">
-                                                            <SelectValue placeholder="انتخاب استان" />
-                                                        </SelectTrigger>
-                                                        <SelectContent>
-                                                            {IRANIAN_PROVINCES.map(p => (
-                                                                <SelectItem key={p} value={p}>{p}</SelectItem>
-                                                            ))}
-                                                        </SelectContent>
-                                                    </Select>
-                                                    {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
-                                                </Field>
-                                            )}
-                                        />
+
+
+                                        {/* Province / City */}
+
                                         <Controller
                                             control={form.control}
                                             name="city"
@@ -488,6 +458,6 @@ export default function CheckoutPage() {
                     </div>
                 </form>
             </main>
-        </div>
+        </div >
     );
 }

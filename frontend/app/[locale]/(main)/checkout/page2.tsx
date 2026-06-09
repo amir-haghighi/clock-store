@@ -1,6 +1,6 @@
 "use client";
 import { useState } from "react";
-import Link from "next/link";
+import { Link } from "@/i18n/navigation";
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -25,7 +25,7 @@ import { CartItem } from "../cart/page";
 import { Field, FieldError, FieldLabel } from "@/components/ui/field";
 import { useUser } from "@/hooks/useUser";
 import Modal from "@/components/modal/modal";
-import { useRouter } from "next/navigation";
+import { useRouter } from '@/i18n/navigation';
 import LoginSignup from "@/components/loginSignup/LoginSignup";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -91,7 +91,6 @@ const STEPS: { key: Step; label: string; icon: typeof User }[] = [
 export default function CheckoutPage() {
     const router = useRouter()
     const { user } = useUser()
-    console.log({ user })
     if (!user) {
 
         return (

@@ -73,7 +73,7 @@ export const refreshAccessToken = async (
             },
             process.env.JWT_SECRET!,
             {
-                expiresIn: "15m",
+                expiresIn: "1h",
             }
         );
 
