@@ -53,6 +53,7 @@ export interface CreateProductPayload {
  * لیست محصولات با فیلتر و صفحه‌بندی
  */
 export const useProducts = (filters: ProductFilters = {}) => {
+
     const params = new URLSearchParams();
     Object.entries(filters).forEach(([key, val]) => {
         if (val !== undefined && val !== "") params.set(key, String(val));
@@ -72,9 +73,9 @@ export const useProducts = (filters: ProductFilters = {}) => {
         staleTime: 1000 * 60 * 5,
         retry: false,
     });
-
+    console.log({ data: query.data })
     return {
-        products: query.data?.products ?? [],
+        products: query.data?.data ?? [],
         page: query.data?.page,
         pages: query.data?.pages,
         total: query.data?.total,

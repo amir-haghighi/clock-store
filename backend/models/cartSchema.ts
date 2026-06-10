@@ -7,8 +7,6 @@ export interface ICartItem {
         name: string;
         hex: string;
     };
-    createdAt: Date;
-    updatedAt: Date;
 }
 
 export interface ICart extends Document {
@@ -33,12 +31,9 @@ const CartItemSchema = new Schema<ICartItem>(
         selectedColor: {
             name: String,
             hex: String,
-        },
-
-        updatedAt: Date,
-        createdAt: Date
+        }
     },
-    { _id: false, timestamps: true }
+    { _id: false }
 );
 
 const CartSchema = new Schema<ICart>(

@@ -8,14 +8,6 @@ export type CartItemType = {
         name: string;
         hex: string;
     };
-    discountPrice: number;
-    brand: string;
-    image: string;
-    slug: string;
-    stock: number;
-    title: string;
-    price: number;
-    updatedAt: number; // ← اضافه شد
 };
 
 type CartStore = {
@@ -45,7 +37,7 @@ export const useCartStore = create<CartStore>()(
                         updated[index] = {
                             ...current,
                             quantity: Math.min(current.quantity + item.quantity, item.stock),
-                            updatedAt: Date.now(), // ← اضافه شد
+                            updatedAt: new Date(Date.now()).toISOString(), // ← اضافه شد
                         };
                         return { cartItems: updated };
                     }
@@ -56,7 +48,7 @@ export const useCartStore = create<CartStore>()(
                             {
                                 ...item,
                                 quantity: Math.min(item.quantity, item.stock),
-                                updatedAt: Date.now(), // ← اضافه شد
+                                updatedAt: new Date(Date.now()).toISOString(), // ← اضافه شد
                             },
                         ],
                     };
@@ -82,7 +74,7 @@ export const useCartStore = create<CartStore>()(
                         updated[index] = {
                             ...current,
                             quantity: newQuantity,
-                            updatedAt: Date.now(), // ← اضافه شد
+                            updatedAt: new Date(Date.now()).toISOString(), // ← اضافه شد
                         };
                     }
 

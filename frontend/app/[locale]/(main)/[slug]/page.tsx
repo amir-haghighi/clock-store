@@ -82,6 +82,8 @@ export default function ProductPage() {
             productId: product._id,
             quantity,
             selectedColor,
+            updatedAt: new Date(Date.now()).toISOString(),
+
         });
         toast.success(
             <div>
@@ -143,7 +145,7 @@ export default function ProductPage() {
 
             {/* ── Main grid ── */}
             <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-10 lg:py-8">
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-12 border-b-2 pb-12">
 
                     {/* ── Left: image gallery ── */}
                     <div className="flex">
@@ -422,7 +424,7 @@ export default function ProductPage() {
                 </div>
 
                 {/* ── Tabs ── */}
-                <div className="mt-16 lg:mt-20">
+                <div className="mt-6">
                     <Tabs defaultValue="description">
                         <TabsList className="w-full justify-start gap-1 border-b border-zinc-100 dark:border-zinc-800 bg-transparent rounded-none h-auto pb-0 mb-8">
                             {(["description", "specifications", "reviews"] as const).map((tab) => (

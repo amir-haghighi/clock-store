@@ -4,6 +4,7 @@ import type { ResType } from "../types/res.js";
 import type { IProduct, IReview } from "../models/productSchema.js";
 import Product from "../models/productSchema.js";
 import { deleteTemp, moveTempToProducts } from "../utils/uploadsUtils.js";
+
 // ─── Helper ───────────────────────────────────────────────────────────────────
 
 const isValidObjectId = (id: string) => mongoose.Types.ObjectId.isValid(id);
@@ -36,20 +37,20 @@ export const getProducts = async (req: Request, res: ResType) => {
         if (brand) filter.brand = { $regex: String(brand), $options: "i" };
         if (category) filter.category = category as IProduct["category"];
         if (gender) filter.gender = gender as IProduct["gender"];
-        if (inStock === "true") filter.stock = { $gt: 0 };
+        if (inStock === "true") filter["variants.stock"] = { $gt: 0 };
 
         if (minPrice || maxPrice) {
-            filter.price = {};
-            if (minPrice) filter.price.$gte = Number(minPrice);
-            if (maxPrice) filter.price.$lte = Number(maxPrice);
+            filter["variants.price"] = {};
+            if (minPrice) filter["variants.price"].$gte = Number(minPrice);
+            if (maxPrice) filter["variants.price"].$lte = Number(maxPrice);
         }
 
         if (search) filter.$text = { $search: search as string };
 
         const sortMap: Record<string, Record<string, 1 | -1>> = {
             newest: { createdAt: -1 },
-            price: { price: 1 },
-            "-price": { price: -1 },
+            price: { "variants.price": 1 },
+            "-price": { "variants.price": -1 },
             rating: { rating: -1 },
         };
         const sortOption = sortMap[sort as string] ?? sortMap.newest;
@@ -67,18 +68,15 @@ export const getProducts = async (req: Request, res: ResType) => {
             Product.countDocuments(filter),
         ]);
 
-
         res.json({
             message: "getting data was successful",
             status: "success",
-            data:
-                products,
+            data: products,
             pagination: {
                 page: pageNum,
                 pages: Math.ceil(total / limitNum),
-                total: total
-            }
-
+                total: total,
+            },
         });
     } catch (error) {
         res.status(500).json({ message: error?.message || error, status: "fail" });
@@ -119,7 +117,7 @@ export const getProductBySlug = async (req: Request, res: ResType) => {
 
         res.json({ data: product, status: "success", message: "The product getting was successful" });
     } catch (error) {
-        res.status(500).json({ message: error?.mesage || error, status: "fail" });
+        res.status(500).json({ message: error?.message || error, status: "fail" });
     }
 };
 
@@ -128,21 +126,20 @@ export const getProductBySlug = async (req: Request, res: ResType) => {
  * ثبت نظر — فقط کاربر لاگین‌کرده
  */
 export const createProductReview = async (req: Request, res: ResType) => {
-
     try {
         const { rating, comment } = req.body;
 
         if (!rating || !comment) {
-            return res.status(400).json({ message: "the rarting and the comment is necessary ", status: "fail" });
+            return res.status(400).json({ message: "the rating and the comment is necessary", status: "fail" });
         }
 
         if (!isValidObjectId(String(req.params.id))) {
-            return res.status(400).json({ message: "the code is not vaild", status: "fail" });
+            return res.status(400).json({ message: "the id is not valid", status: "fail" });
         }
 
         const product = await Product.findById(req.params.id);
         if (!product) {
-            return res.status(404).json({ message: " no product", status: "fail" });
+            return res.status(404).json({ message: "no product found", status: "fail" });
         }
 
         const userId = (req as any).user._id;
@@ -179,23 +176,38 @@ export const createProductReview = async (req: Request, res: ResType) => {
  */
 export const createProduct = async (req: Request, res: ResType) => {
     const files = req.files as Express.Multer.File[];
-    const imageUrls = files?.map(file => {
-        return `/uploads/products/${file.filename}`;
-    }) || [];
+    const imageUrls = files?.map(file => `/uploads/products/${file.filename}`) || [];
+
     try {
         const {
             title, slug, brand, watchModel, description,
-            price, stock, category, gender,
-            colors, specifications,
+            category, gender,
+            variants, specifications,
             isFeatured,
         } = req.body;
 
         const exists = await Product.findOne({ slug });
         if (exists) {
-            return res.status(400).json({
-                message: "This slug is already used",
-                status: "fail"
-            });
+            return res.status(400).json({ message: "This slug is already used", status: "fail" });
+        }
+
+        // parse variants — comes as JSON string from multipart/form-data
+        let parsedVariants = [];
+        if (typeof variants === "string") {
+            parsedVariants = JSON.parse(variants);
+        } else {
+            parsedVariants = variants ?? [];
+        }
+
+        if (parsedVariants.length === 0) {
+            return res.status(400).json({ message: "At least one variant is required", status: "fail" });
+        }
+
+        let parsedSpecs = {};
+        if (typeof specifications === "string") {
+            parsedSpecs = new Map(Object.entries(JSON.parse(specifications)));
+        } else {
+            parsedSpecs = new Map(Object.entries(specifications ?? {}));
         }
 
         const product = await Product.create({
@@ -205,41 +217,28 @@ export const createProduct = async (req: Request, res: ResType) => {
             watchModel,
             description,
             images: imageUrls,
-            price,
-            stock,
+            variants: parsedVariants,
             category,
             gender,
-            colors: colors ?? [],
-            specifications: specifications ?? {},
+            specifications: parsedSpecs,
             isFeatured: isFeatured ?? false,
         });
-        moveTempToProducts(files)
-        res.status(201).json({
-            data: product,
-            message: "The product created successfully",
-            status: "success"
-        });
 
+        moveTempToProducts(files);
+
+        res.status(201).json({ data: product, message: "The product created successfully", status: "success" });
     } catch (error: any) {
-        // 🧨 CLEANUP TMP FILES if anything fails
-        await deleteTemp(files)
+        await deleteTemp(files);
         if (error.code === 11000) {
-            return res.status(400).json({
-                message: "the slug is already chosen, change it",
-                status: "fail"
-            });
+            return res.status(400).json({ message: "the slug is already chosen, change it", status: "fail" });
         }
-
-        res.status(500).json({
-            message: error?.message || error,
-            status: "fail"
-        });
+        res.status(500).json({ message: error?.message || error, status: "fail" });
     }
 };
 
 /**
  * PUT /api/admin/products/:id
- * ویرایش محصول — همه فیلدها قابل تغییرن از جمله stock
+ * ویرایش محصول — همه فیلدها قابل تغییرن از جمله variants
  */
 export const updateProduct = async (req: Request, res: ResType) => {
     try {
@@ -255,16 +254,14 @@ export const updateProduct = async (req: Request, res: ResType) => {
         if (req.body.slug && req.body.slug !== product.slug) {
             const slugExists = await Product.findOne({ slug: req.body.slug });
             if (slugExists) {
-                return res.status(400).json({ message: "This slug is already used ", status: "fail" });
+                return res.status(400).json({ message: "This slug is already used", status: "fail" });
             }
         }
 
         const allowedFields = [
             "title", "slug", "brand", "watchModel", "description",
-            "images", "price", "discountPrice",
-            "stock", "category", "gender",
-            "colors", "specifications",
-            "isFeatured", "isActive",
+            "images", "variants", "category", "gender",
+            "specifications", "isFeatured", "isActive",
         ];
 
         allowedFields.forEach((field) => {
@@ -336,7 +333,7 @@ export const deleteReview = async (req: Request, res: ResType) => {
         product.updateRating();
         const newProduct = await product.save();
 
-        res.json({ message: "The review successfully submitted!", status: "success", data: newProduct });
+        res.json({ message: "The review deleted successfully", status: "success", data: newProduct });
     } catch (error) {
         res.status(500).json({ message: error?.message || error, status: "fail" });
     }

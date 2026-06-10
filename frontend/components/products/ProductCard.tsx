@@ -26,7 +26,6 @@ export interface Product {
   rating: number;
   numReviews: number;
   isActive: boolean;
-  createdAt: string;
   updatedAt: string;
 }
 
@@ -42,8 +41,10 @@ export function ProductCard({ product }: ProductCardProps) {
   const src = `${process.env.NEXT_PUBLIC_API_URL}${product.images[0]}`;
 
   return (
-    <Link href={`/${product.slug}`} >
-      <Card className="group mx-auto flex flex-col max-w-72 justify-center overflow-hidden rounded-none border sm:w-full h-96   gap-0 border-zinc-200 bg-white  transition-all duration-300 hover:shadow-xl hover:inset-shadow-xl cursor-pointer dark:border-zinc-800 dark:bg-zinc-900 pt-0">
+    <Link href={`/${product.slug}`} className="p-0" >
+      <Card className="group flex flex-col max-w-72 justify-center overflow-hidden 
+      p-0
+      rounded-none border w-full h-96 gap-0 border-zinc-200 bg-white  transition-all duration-300 hover:shadow-xl hover:inset-shadow-xl cursor-pointer dark:border-zinc-800 dark:bg-zinc-900 pt-0 py-0 m-0">
         {/* Image / Placeholder */}
 
         <div className="relative h-60  w-full overflow-hidden bg-zinc-100 dark:bg-zinc-800">
@@ -128,7 +129,7 @@ export function ProductCard({ product }: ProductCardProps) {
 
           <div className="mt-3 flex items-baseline gap-2">
             <span className="text-xl font-bold text-zinc-900 dark:text-zinc-50">
-              ${product.discountPrice}
+              ${product?.discountPrice ?? product.price}
             </span>
             {hasDiscount && (
               <span className="text-sm text-zinc-400 line-through">

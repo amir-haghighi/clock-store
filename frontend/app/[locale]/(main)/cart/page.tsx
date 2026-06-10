@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "@/i18n/navigation";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -21,6 +21,7 @@ import { useUser } from "@/hooks/useUser";
 import { useRouter } from "@/i18n/navigation";
 import toast from "react-hot-toast";
 import { useTranslations } from "next-intl";
+import { useProducts } from "@/hooks/useProducts";
 
 const PROMO_CODES: Record<string, number> = {
     WATCH10: 10,
@@ -29,23 +30,29 @@ const PROMO_CODES: Record<string, number> = {
 
 export default function CartPage() {
     const t = useTranslations("cart");
+    const { products } = useProducts()
+    const { addItem, removeItem } = useCartStore();
+
+    // const product =  products.find( (item)=> item.id )
     const { isAuthenticated } = useUser();
     const router = useRouter();
     const API = process.env.NEXT_PUBLIC_API_URL ?? "";
 
-    // عملیات local از store، cartItems از useCart
-    const { addItem, removeItem } = useCartStore();
-    const { cartItems, isLoading } = useCart();
 
+    // عملیات local از store، cartItems از useCart
+
+    const { cartItems, isLoading } = useCart();
+    console.log("here")
     const [promoInput, setPromoInput] = useState("");
     const [appliedPromo, setAppliedPromo] = useState<string | null>(null);
     const [promoError, setPromoError] = useState("");
 
-    const effectivePrice = (item: { price: number; discountPrice?: number }) =>
-        item.discountPrice && item.discountPrice < item.price && item.discountPrice > 0
+    const effectivePrice = (item: { price: number; discountPrice?: number }) => {
+        console.log({ item11111111: item })
+        return !!item?.discountPrice && item.discountPrice < item.price && item.discountPrice > 0
             ? item.discountPrice
             : item.price;
-
+    }
     const subtotal = cartItems.reduce((s, it) => s + effectivePrice(it) * it.quantity, 0);
     const discount = appliedPromo ? (subtotal * PROMO_CODES[appliedPromo]) / 100 : 0;
     const shipping = subtotal >= 500 ? 0 : 15;
@@ -128,10 +135,17 @@ export default function CartPage() {
 
                     {/* ── Item list ── */}
                     <div className="flex flex-col gap-3">
-                        {cartItems.map((item) => {
-                            const hasDiscount = !!item.discountPrice && item.discountPrice > 0;
+                        {cartItems.map((cartItem) => {
+
+                            const item = products.find((it) => it._id === cartItem.productId)
+                            if (!item) {
+                                removeItem(cartItem)
+                                return null;
+                            }
                             const ep = effectivePrice(item);
                             const imgSrc = item.image ? `${API}${item.image}` : null;
+                            const hasDiscount = !!item.discountPrice && item.discountPrice > 0;
+
 
                             return (
                                 <div

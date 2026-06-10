@@ -50,34 +50,6 @@ const shippingSchema = z.object({
 
 type ShippingFormValues = z.infer<typeof shippingSchema>;
 
-// ── Mock cart (replace with your cart context / store) ────────────────────────
-
-const MOCK_ITEMS: CartItem[] = [
-    {
-        id: "1",
-        slug: "seiko-presage-cocktail-time",
-        title: "Seiko Presage Cocktail Time",
-        brand: "Seiko",
-        image: "",
-        price: 420,
-        discountPrice: 349,
-        color: { name: "Midnight Blue", hex: "#1e3a5f" },
-        stock: 4,
-        quantity: 1,
-    },
-    {
-        id: "2",
-        slug: "hamilton-khaki-field",
-        title: "Hamilton Khaki Field Auto",
-        brand: "Hamilton",
-        image: "",
-        price: 695,
-        discountPrice: 0,
-        color: { name: "Army Green", hex: "#4a5240" },
-        stock: 10,
-        quantity: 2,
-    },
-];
 
 // ── Step config ───────────────────────────────────────────────────────────────
 
@@ -125,7 +97,7 @@ export default function CheckoutPage() {
 
     // ── Totals ───────────────────────────────────────────────────────────────
     const effectivePrice = (it: CartItem) =>
-        it.discountPrice && it.discountPrice > 0 ? it.discountPrice : it.price;
+        !!it.discountPrice && it.discountPrice > 0 ? it.discountPrice : it.price;
     const itemsPrice = items.reduce((s, it) => s + effectivePrice(it) * it.quantity, 0);
     const shippingPrice = itemsPrice >= 500 ? 0 : 15;
     const taxPrice = parseFloat((itemsPrice * 0.09).toFixed(2)); // 9% VAT

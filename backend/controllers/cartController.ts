@@ -137,74 +137,84 @@ export const clearCart = async (req: Request, res: ResType) => {
 // POST /api/cart/merge
 export const mergeCart = async (req: Request, res: ResType) => {
     const userId = req.user._id;
+
     const localItems: ICartItem[] = req.body.items ?? [];
 
-    let cart = await Cart.findOne({ userId });
+    let dbCart = await Cart.findOne({ userId });
 
-    if (!cart) {
-
-        cart = await Cart.create({ userId, items: localItems });
-        return res.status(200).json({
-            status: "success",
-            data: cart,
-            message: "Cart created from local items",
-        });
+    if (!dbCart) {
+        dbCart = new Cart({ userId, items: [] });
     }
 
-    // helper key برای جلوگیری از mismatch
+    // key generator
     const getKey = (item: ICartItem) =>
         `${item.productId.toString()}-${item.selectedColor?.name ?? "default"}`;
 
+    // server cart → map
     const map = new Map<string, ICartItem>();
 
-    // 1. اول آیتم‌های سرور
-    for (const item of cart.items) {
-
-        map.set(getKey(item), item);
-
+    for (const item of dbCart.items ?? []) {
+        map.set(getKey(item), { ...item });
     }
 
-    // 2. بعد merge آیتم‌های لوکال
+    // fetch products once
+    const productIds = localItems.map(i => i.productId);
+
+    const products = await Product.find({
+        _id: { $in: productIds }
+    });
+
+    const productMap = new Map(
+        products.map(p => [p._id.toString(), p])
+    );
+
+    // merge logic
     for (const localItem of localItems) {
-        const product = await Product.findById(localItem.productId)
-        console.log("here")
-        console.log({ product })
-        if (!product) {
-            continue;
-        }
+
+        const product = productMap.get(localItem.productId.toString());
+        const { stock } = product?.variants.find(
+            (variant) => variant?.color?.name === localItem?.selectedColor?.name
+
+        );
+
+        if (!product) continue;
+
         const key = getKey(localItem);
         const existing = map.get(key);
 
         if (!existing) {
-            // آیتم جدید
-            map.set(key, localItem);
-            continue;
-        }
-
-        // اگر updatedAt نداریم → فقط جمع quantity
-        if (!localItem.updatedAt || !existing.updatedAt) {
-            existing.quantity += Math.min(existing.quantity + localItem.quantity, product.stock);
-            continue;
-        }
-
-        const localTime = new Date(localItem.updatedAt).getTime();
-        const serverTime = new Date(existing.updatedAt).getTime();
-
-        if (localTime > serverTime) {
-            // لوکال جدیدتر است → replace کامل
             map.set(key, {
                 ...localItem,
+                quantity: Math.min(localItem.quantity, stock)
             });
-        } else {
-            // سرور جدیدتر یا مساوی → merge quantity
-            existing.quantity = Math.min(localItem.quantity + existing.quantity, product.stock);
+            continue;
+        }
+
+        const newQty = Math.min(
+            existing.quantity + localItem.quantity,
+            product.stock
+        );
+
+        map.set(key, {
+            ...existing,
+            quantity: newQty
+        });
+
+        if (newQty <= 0) {
+            map.delete(key);
         }
     }
 
-    // 3. تبدیل Map به array
     cart.items = Array.from(map.values());
+    if (!cart?.items?.length) {
+        await Cart.deleteOne({ userId });
 
-    await cart.save();
+        return res.status(200).json({
+            status: "success",
+            data: null,
+            message: "Cart deleted because it was empty",
+        });
+    } await cart.save();
 
     return res.status(200).json({
         status: "success",
@@ -212,3 +222,5 @@ export const mergeCart = async (req: Request, res: ResType) => {
         message: "Cart merged successfully",
     });
 };
+
+

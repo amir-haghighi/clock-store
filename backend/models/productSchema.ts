@@ -11,6 +11,13 @@ export interface IReview {
     createdAt: Date;
 }
 
+export interface IVariant {
+    color: { name: string; hex: string };
+    price: number;
+    discountPrice?: number;
+    stock: number;
+}
+
 export interface IProduct extends Document {
     title: string;
     slug: string;
@@ -19,13 +26,10 @@ export interface IProduct extends Document {
     description: string;
     images: string[];
     updateRating(): void;
-    price: number;
-    discountPrice?: number;     // قیمت تخفیف — اگه ۰ باشه تخفیفی نیست
-    stock: number;
+    variants: IVariant[];
     category: "luxury" | "sport" | "casual" | "smart" | "classic";
     gender: "men" | "women" | "unisex";
-    colors: { name: string; hex: string }[];
-    specifications: Map<string, string>;  // آزاد — هر چیزی که فروشنده بخواد
+    specifications: Map<string, string>;
     reviews?: IReview[];
     rating?: number;
     numReviews?: number;
@@ -61,6 +65,36 @@ const reviewSchema = new Schema<IReview>(
         createdAt: {
             type: Date,
             default: Date.now,
+        },
+    },
+    { _id: true }
+);
+
+const variantSchema = new Schema<IVariant>(
+    {
+        color: {
+            name: { type: String, required: true },
+            hex: { type: String, required: true },
+        },
+        price: {
+            type: Number,
+            required: true,
+            min: 0,
+        },
+        discountPrice: {
+            type: Number,
+            validate: {
+                validator: function (this: IVariant, val: number) {
+                    return val < this.price;
+                },
+                message: "discountPrice must be less than price",
+            },
+        },
+        stock: {
+            type: Number,
+            required: true,
+            default: 0,
+            min: 0,
         },
     },
     { _id: true }
@@ -104,22 +138,13 @@ const productSchema = new Schema<IProduct>(
                 message: "حداقل یک تصویر الزامی است",
             },
         },
-        price: {
-            type: Number,
+        variants: {
+            type: [variantSchema],
             required: true,
-            min: 0,
-        },
-        discountPrice: {
-            type: Number,
-            min: 0,
-            max: 100,
-            default: 0,
-        },
-        stock: {
-            type: Number,
-            required: true,
-            default: 0,
-            min: 0,
+            validate: {
+                validator: (v: IVariant[]) => v.length > 0,
+                message: "At least one variant is required",
+            },
         },
         category: {
             type: String,
@@ -131,33 +156,22 @@ const productSchema = new Schema<IProduct>(
             enum: ["men", "women", "unisex"],
             required: true,
         },
-        colors: [
-            {
-                name: { type: String, required: true },
-                hex: { type: String, required: true },
-            },
-        ],
-        // فروشنده هر مشخصه‌ای که خواست اضافه می‌کنه
-        // مثلا: { "بند": "چرم", "موومان": "Miyota 9015", "گارانتی": "۲ سال" }
         specifications: {
             type: Map,
             of: String,
             default: {},
         },
         reviews: {
-            optional: true,
             type: [reviewSchema],
             default: [],
         },
         rating: {
-            optional: true,
             type: Number,
             default: 0,
             min: 0,
             max: 5,
         },
         numReviews: {
-            optional: true,
             type: Number,
             default: 0,
         },
@@ -176,23 +190,25 @@ const productSchema = new Schema<IProduct>(
 // ─── Indexes ──────────────────────────────────────────────────────────────────
 
 productSchema.index({ brand: 1, category: 1 });
-productSchema.index({ price: 1 });
+productSchema.index({ "variants.price": 1 });
 productSchema.index({ isActive: 1, isFeatured: 1 });
 productSchema.index(
-    { title: "text", brand: "text", model: "text" },
-    { weights: { title: 3, brand: 2, model: 1 } }
+    { title: "text", brand: "text", watchModel: "text" },
+    { weights: { title: 3, brand: 2, watchModel: 1 } }
 );
 
 // ─── Virtuals ─────────────────────────────────────────────────────────────────
 
-// قیمت بعد از تخفیف
+// lowest effective price across all variants
 productSchema.virtual("finalPrice").get(function () {
-    if (!this.discountPrice) return this.price;
-    return (this.discountPrice);
+    return Math.min(
+        ...this.variants.map((v) => v.discountPrice ?? v.price)
+    );
 });
 
+// true if any variant has stock
 productSchema.virtual("inStock").get(function () {
-    return this.stock > 0;
+    return this.variants.some((v) => v.stock > 0);
 });
 
 // ─── Methods ──────────────────────────────────────────────────────────────────

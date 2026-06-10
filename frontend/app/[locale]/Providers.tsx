@@ -26,6 +26,7 @@ function Providers({
             <Provider store={store}>
                 <QueryClientProvider client={queryClient} >
                     <NextIntlClientProvider
+                        timeZone='UTC'
                         locale={locale}
                         messages={messages}
                     >
