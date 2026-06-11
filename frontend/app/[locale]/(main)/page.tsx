@@ -21,7 +21,7 @@ export default function ProductsPage() {
     useFeaturedProducts(filters);
 
   return (
-    <main className="min-h-screen ">
+    <main className="min-h-screen mx-auto ">
       <div className="mx-auto w-screen px-4 py-12 sm:px-6 lg:px-8 ">
 
         {/* Page Header */}

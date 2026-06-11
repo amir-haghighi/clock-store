@@ -177,7 +177,7 @@ const productSchema = new Schema<IProduct>(
         },
         isFeatured: {
             type: Boolean,
-            default: false,
+            default: true,
         },
         isActive: {
             type: Boolean,

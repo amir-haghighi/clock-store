@@ -4,18 +4,22 @@ import { persist } from "zustand/middleware";
 export type CartItemType = {
     productId: string;
     quantity: number;
-    selectedColor?: {
+    selectedColor: {
         name: string;
         hex: string;
     };
 };
 
+export type AddItemArgumentType = CartItemType & {
+    stock: number;
+};
+
 type CartStore = {
     cartItems: CartItemType[];
-    addItem: (item: CartItemType) => void;
-    putItems: (items: CartItemType[]) => void;
-    removeAll: () => void;
+    addItem: (item: AddItemArgumentType) => void;
     removeItem: (item: CartItemType) => void;
+    clearCart: () => void;
+    setCart: (items: CartItemType[]) => void;
 };
 
 export const useCartStore = create<CartStore>()(
@@ -31,14 +35,19 @@ export const useCartStore = create<CartStore>()(
                             i.selectedColor?.name === item.selectedColor?.name
                     );
 
+                    const safeQty = Math.min(item.quantity, item.stock);
+
                     if (index !== -1) {
                         const updated = [...state.cartItems];
-                        const current = updated[index];
+
                         updated[index] = {
-                            ...current,
-                            quantity: Math.min(current.quantity + item.quantity, item.stock),
-                            updatedAt: new Date(Date.now()).toISOString(), // ← اضافه شد
+                            ...updated[index],
+                            quantity: Math.min(
+                                updated[index].quantity + safeQty,
+                                item.stock,
+                            ),
                         };
+
                         return { cartItems: updated };
                     }
 
@@ -46,44 +55,30 @@ export const useCartStore = create<CartStore>()(
                         cartItems: [
                             ...state.cartItems,
                             {
-                                ...item,
-                                quantity: Math.min(item.quantity, item.stock),
-                                updatedAt: new Date(Date.now()).toISOString(), // ← اضافه شد
+                                productId: item.productId,
+                                quantity: safeQty,
+                                selectedColor: item.selectedColor,
                             },
                         ],
                     };
                 }),
 
             removeItem: (item) =>
-                set((state) => {
-                    const index = state.cartItems.findIndex(
+                set((state) => ({
+                    cartItems: state.cartItems.filter(
                         (i) =>
-                            i.productId === item.productId &&
-                            i.selectedColor?.name === item.selectedColor?.name
-                    );
+                            !(
+                                i.productId === item.productId &&
+                                i.selectedColor?.name === item.selectedColor?.name
+                            )
+                    ),
+                })),
 
-                    if (index === -1) return state;
-
-                    const updated = [...state.cartItems];
-                    const current = updated[index];
-                    const newQuantity = current.quantity - item.quantity;
-
-                    if (newQuantity <= 0) {
-                        updated.splice(index, 1);
-                    } else {
-                        updated[index] = {
-                            ...current,
-                            quantity: newQuantity,
-                            updatedAt: new Date(Date.now()).toISOString(), // ← اضافه شد
-                        };
-                    }
-
-                    return { cartItems: updated };
-                }),
-
-            putItems: (items) => set({ cartItems: items }),
-            removeAll: () => set({ cartItems: [] }),
+            setCart: (items) => set({ cartItems: items }),
+            clearCart: () => set({ cartItems: [] }),
         }),
-        { name: "cart-storage" }
+        {
+            name: "cart-storage",
+        }
     )
 );

@@ -77,7 +77,7 @@ export default function CheckoutPage() {
             </Modal>
         )
     }
-    const items = MOCK_ITEMS;
+
     const API = process.env.NEXT_PUBLIC_API_URL ?? "";
 
     const [step, setStep] = useState<Step>("shipping");

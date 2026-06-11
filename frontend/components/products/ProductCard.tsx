@@ -11,38 +11,40 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ShoppingCart, Star, Package } from "lucide-react";
 import { Link } from "@/i18n/navigation";
+import { ProductType } from "@/types/product";
 
 
-export interface Product {
-  _id: string;
-  title: string;
-  description: string;
-  price: number;
-  discountPrice: number;
-  images: string[];
-  brand: string;
-  category: string;
-  stock: number;
-  rating: number;
-  numReviews: number;
-  isActive: boolean;
-  updatedAt: string;
-}
 
 interface ProductCardProps {
-  product: Product;
+  product: ProductType;
 }
-
 export function ProductCard({ product }: ProductCardProps) {
-  const hasDiscount = !!product?.discountPrice && product.discountPrice < product.price;
-  const discountPercent = hasDiscount
-    ? Math.round(((product.price - product.discountPrice) / product.price) * 100)
-    : 0;
-  const src = `${process.env.NEXT_PUBLIC_API_URL}${product.images[0]}`;
 
+  // cheapest Color on the board //
+  const mostDiscountPercentAndIndex = product.variants.reduce(
+    (acc, variant, index) => {
+      if (!variant?.discountPrice) return acc;
+
+      const percent =
+        ((variant.price - variant.discountPrice) / variant.price) * 100;
+
+      return percent > acc[0] ? [percent, index] : acc;
+    },
+    [0, -1]
+  );
+  const ItemIndex = mostDiscountPercentAndIndex[1] < 0 ? 0 :
+    mostDiscountPercentAndIndex[1]
+  const stock = product.variants[ItemIndex].stock
+  const price = product.variants[ItemIndex].price
+  const discountPrice = product.variants[ItemIndex]?.discountPrice ?? null
+  const hasDiscount = !!discountPrice
+  const discountPercent = hasDiscount ? mostDiscountPercentAndIndex[0].toFixed(0) : null
+  //_________________________________________________________________________//
+
+  const src = `${process.env.NEXT_PUBLIC_API_URL}${product.images[0]}`;
   return (
     <Link href={`/${product.slug}`} className="p-0" >
-      <Card className="group flex flex-col max-w-72 justify-center overflow-hidden 
+      <Card className="group flex flex-col  justify-center overflow-hidden 
       p-0
       rounded-none border w-full h-96 gap-0 border-zinc-200 bg-white  transition-all duration-300 hover:shadow-xl hover:inset-shadow-xl cursor-pointer dark:border-zinc-800 dark:bg-zinc-900 pt-0 py-0 m-0">
         {/* Image / Placeholder */}
@@ -65,7 +67,7 @@ export function ProductCard({ product }: ProductCardProps) {
           <div className="absolute left-3 top-3 flex flex-col gap-1">
             {hasDiscount && (
               <Badge className="bg-rose-500 text-white hover:bg-rose-600 text-xs font-semibold">
-                -{discountPercent}%
+                {discountPercent}%
               </Badge>
             )}
             {!product.isActive && (
@@ -76,18 +78,18 @@ export function ProductCard({ product }: ProductCardProps) {
           </div>
 
           {/* Stock warning */}
-          {product.stock <= 3 && product.stock > 0 && (
+          {stock <= 3 && stock > 0 && (
             <div className="absolute bottom-2 right-2">
               <Badge
                 variant="outline"
                 className="border-amber-400 bg-amber-50 text-amber-700 text-xs dark:bg-amber-950 dark:text-amber-300"
               >
-                Only {product.stock} left
+                Only {stock} left
               </Badge>
             </div>
           )}
 
-          {product.stock === 0 && (
+          {stock === 0 && (
             <div className="absolute inset-0 flex items-center justify-center bg-black/40 backdrop-blur-[1px]">
               <span className="rounded-full bg-white/90 px-4 py-1 text-sm font-semibold text-zinc-800 dark:bg-zinc-900/90 dark:text-white">
                 Out of Stock
@@ -129,11 +131,11 @@ export function ProductCard({ product }: ProductCardProps) {
 
           <div className="mt-3 flex items-baseline gap-2">
             <span className="text-xl font-bold text-zinc-900 dark:text-zinc-50">
-              ${product?.discountPrice ?? product.price}
+              {discountPrice ?? price}
             </span>
             {hasDiscount && (
               <span className="text-sm text-zinc-400 line-through">
-                ${product.price.toFixed(2)}
+                ${price}
               </span>
             )}
           </div>
@@ -153,10 +155,10 @@ export function ProductCard({ product }: ProductCardProps) {
         {/* <CardFooter className="pt-0 pb-4">
         <Button
           className="w-full gap-2 rounded-xl font-semibold transition-all duration-200"
-          disabled={product.stock === 0 || !product.isActive}
+          disabled={stock === 0 || !product.isActive}
         >
           <ShoppingCart className="h-4 w-4" />
-          {product.stock === 0 ? "Out of Stock" : "Add to Cart"}
+          {stock === 0 ? "Out of Stock" : "Add to Cart"}
         </Button>
       </CardFooter> */}
 

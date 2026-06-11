@@ -26,6 +26,7 @@ import toast from "react-hot-toast";
 import { useCartStore } from "@/store/useCartStore";
 import { useTranslations, useLocale } from "next-intl";
 import Loading from "../loading";
+import { ProductType } from "@/types/product";
 
 export default function ProductPage() {
     const t = useTranslations("product");
@@ -34,21 +35,19 @@ export default function ProductPage() {
     const slug = params?.slug as string;
     const { product, loading, error } = useProductBySlug(slug);
     const [selectedImage, setSelectedImage] = useState(0);
-    const [selectedColor, setSelectedColor] = useState({ name: "", hex: "" });
+    const [selectedVariant, setSelectedVariant] = useState<ProductType["variants"][0] | null>(null);
     const [quantity, setQuantity] = useState(1);
     const [wishlisted, setWishlisted] = useState(false);
     const addItem = useCartStore((state) => state.addItem);
 
     useEffect(() => {
-        if (!!product) {
-            setSelectedColor(product.colors[0]);
+        if (product) {
+            setSelectedVariant(product.variants[0]);
         }
-    }, [product]);
+    }, []);
 
-    // ── Loading ──────────────────────────────────────────────────────────────
     if (loading) { return (<Loading />) }
 
-    // ── Error ────────────────────────────────────────────────────────────────
     if (error || !product) {
         return (
             <div className="text-center space-y-4 px-4">
@@ -69,43 +68,18 @@ export default function ProductPage() {
         );
     }
 
-    // ── handlers ─────────────────────────────────────────────────────────────
-    const addToCartHandler = () => {
-        addItem({
-            price: product.price,
-            discountPrice: product?.discountPrice,
-            brand: product.brand,
-            image: product.images[0],
-            slug: product.slug,
-            stock: product.stock,
-            title: product.title,
-            productId: product._id,
-            quantity,
-            selectedColor,
-            updatedAt: new Date(Date.now()).toISOString(),
-
-        });
-        toast.success(
-            <div>
-                {t("addedToCart")}{" "}
-                <Link href="/cart" className="text-primary underline">
-                    {t("cart")}
-                </Link>
-            </div>
-        );
-    };
-
     // ── Derived values ────────────────────────────────────────────────────────
     const API = process.env.NEXT_PUBLIC_API_URL ?? "";
-    const hasDiscount =
-        !!product.discountPrice && product.discountPrice < product.price;
+
+    const price = selectedVariant?.price ?? 0;
+    const discountPrice = selectedVariant?.discountPrice;
+    const stock = selectedVariant?.stock ?? 0;
+    const hasDiscount = !!discountPrice && discountPrice < price;
     const discountPercent = hasDiscount
-        ? Math.round(
-            ((product.price - product.discountPrice) / product.price) * 100
-        )
+        ? Math.round(((price - discountPrice!) / price) * 100)
         : 0;
-    const inStock = product.stock > 0;
-    const lowStock = product.stock > 0 && product.stock <= 5;
+    const inStock = stock > 0;
+    const lowStock = stock > 0 && stock <= 5;
 
     const specs: [string, string][] = product.specifications
         ? Object.entries(
@@ -120,6 +94,27 @@ export default function ProductPage() {
         { icon: Truck, label: t("shipping") },
         { icon: RotateCcw, label: t("returns") },
     ];
+
+    // ── handlers ─────────────────────────────────────────────────────────────
+    const addToCartHandler = () => {
+        if (selectedVariant) {
+            addItem({
+                productId: product._id,
+                quantity,
+                stock,
+                selectedColor: selectedVariant.color!
+            })
+            toast.success(
+                <div>
+                    {t("addedToCart")}{" "}
+                    <Link href="/cart" className="text-primary underline">
+                        {t("cart")}
+                    </Link>
+                </div>
+            );
+        }
+
+    };
 
     // ── UI ────────────────────────────────────────────────────────────────────
     return (
@@ -307,7 +302,7 @@ export default function ProductPage() {
                                 {!inStock
                                     ? t("outOfStock")
                                     : lowStock
-                                        ? `${t("onlyLeft", { count: product.stock })}`
+                                        ? `${t("onlyLeft", { count: stock })}`
                                         : t("inStock")}
                             </span>
                         </div>
@@ -334,15 +329,10 @@ export default function ProductPage() {
                             {hasDiscount && (
                                 <>
                                     <span className="text-xl text-zinc-400 line-through">
-                                        ${product.price.toFixed(2)}
+                                        ${price.toFixed(2)}
                                     </span>
                                     <Badge className="bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400 hover:bg-emerald-100 font-semibold">
-                                        {Math.round(
-                                            ((Number(product.price) - Number(product.discountPrice)) /
-                                                Number(product.price)) *
-                                            100
-                                        )}
-                                        % {t("off")}
+                                        {discountPercent}% {t("off")}
                                     </Badge>
                                 </>
                             )}
@@ -350,40 +340,41 @@ export default function ProductPage() {
 
                         <div>
                             <span className="text-3xl font-extrabold text-zinc-900 dark:text-zinc-50">
-                                ${hasDiscount ? product.discountPrice : product.price}
+                                ${hasDiscount ? discountPrice!.toFixed(2) : price.toFixed(2)}
                             </span>
                         </div>
 
                         {/* Color selector */}
-                        {product.colors?.length > 0 && (
+                        {product.variants?.length > 0 && (
                             <div>
                                 <p className="text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2.5">
                                     {t("color")}:{" "}
                                     <span className="font-normal text-zinc-500">
-                                        {selectedColor.name}
+                                        {selectedVariant?.color.name}
                                     </span>
                                 </p>
                                 <div className="flex items-center justify-center lg:justify-start gap-2.5">
-                                    {product.colors.map(
-                                        (c: { name: string; hex: string }, i: number) => (
+                                    {product.variants.map((v, i) => {
+
+                                        return (
                                             <button
                                                 key={i}
-                                                title={c.name}
-                                                onClick={() => setSelectedColor(c)}
+                                                title={v.color.name}
+                                                onClick={() => setSelectedVariant(v)}
                                                 className={cn(
-                                                    "h-8 w-8 rounded-full border-2 cursor-pointer transition-all duration-200 flex items-center justify-center",
-                                                    selectedColor.name === c.name
+                                                    "h-8 w-8 rounded-full border-2 cursor-pointer transition-all duration-200 flex items-center justify-center ",
+                                                    selectedVariant?._id === v._id
                                                         ? "border-zinc-900 dark:border-zinc-100 scale-110"
                                                         : "border-zinc-200 dark:border-zinc-700 hover:scale-105"
                                                 )}
-                                                style={{ backgroundColor: c.hex }}
+                                                style={{ backgroundColor: v.color.hex }}
                                             >
-                                                {selectedColor.name === c.name && (
+                                                {selectedVariant?._id === v._id && (
                                                     <Check className="h-3.5 w-3.5 drop-shadow" />
                                                 )}
                                             </button>
                                         )
-                                    )}
+                                    })}
                                 </div>
                             </div>
                         )}
@@ -400,7 +391,7 @@ export default function ProductPage() {
                                 {quantity}
                             </span>
                             <button
-                                onClick={() => setQuantity(Math.min(product.stock, quantity + 1))}
+                                onClick={() => setQuantity(Math.min(stock, quantity + 1))}
                                 disabled={!inStock}
                                 className="cursor-pointer h-11 w-12 flex items-center justify-center text-zinc-500 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors disabled:opacity-40"
                             >

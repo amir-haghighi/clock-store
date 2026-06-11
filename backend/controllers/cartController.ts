@@ -3,6 +3,36 @@ import type { ResType } from "../types/res.js";
 import { Cart, type ICartItem } from "../models/cartSchema.js";
 import Product from "../models/productSchema.js";
 
+// helper: populate cart items با اطلاعات به‌روز از product
+const populateCartItems = async (items: ICartItem[]) => {
+    const productIds = items.map((i) => i.productId);
+    const products = await Product.find({ _id: { $in: productIds } });
+    const productMap = new Map(products.map((p) => [p._id.toString(), p]));
+
+    return items.map((item) => {
+        const product = productMap.get(item.productId.toString());
+        if (!product) return null;
+
+        const variant = product.variants.find(
+            (v) => v.color.name.toLowerCase() === item.selectedColor?.name.toLocaleLowerCase()
+        );
+
+        return {
+            productId: item.productId,
+            quantity: item.quantity,
+            selectedColor: item.selectedColor,
+            // snapshot به‌روز از product:
+            title: product.title,
+            slug: product.slug,
+            brand: product.brand,
+            image: product.images[0],
+            price: variant?.price ?? 0,
+            discountPrice: variant?.discountPrice ?? null,
+            stock: variant?.stock ?? 0,
+        };
+    }).filter(Boolean);
+};
+
 // GET /api/cart
 export const getCart = async (req: Request, res: ResType) => {
     const userId = req.user._id;
@@ -10,13 +40,19 @@ export const getCart = async (req: Request, res: ResType) => {
     let cart = await Cart.findOne({ userId });
 
     if (!cart) {
-        cart = await Cart.create({ userId, items: [] });
+        return res.status(200).json({
+            status: "success",
+            message: "Cart is empty",
+            data: { items: [] },
+        });
     }
+
+    const populatedItems = await populateCartItems(cart.items);
 
     res.status(200).json({
         status: "success",
         message: "Getting cart data was successful",
-        data: cart,
+        data: { ...cart.toObject(), items: populatedItems },
     });
 };
 
@@ -26,50 +62,49 @@ export const addToCart = async (req: Request, res: ResType) => {
     const { productId, quantity, selectedColor } = req.body;
 
     const product = await Product.findById(productId);
-
     if (!product) {
-        return res.status(404).json({
-            status: "fail",
-            message: "Product not found",
-        });
+        return res.status(404).json({ status: "fail", message: "Product not found" });
     }
 
-    let serverCart = await Cart.findOne({ userId });
-
-    if (!serverCart) {
-        serverCart = await Cart.create({ userId, items: [] });
+    const variant = product.variants.find(
+        (v) => v.color.name === selectedColor?.name
+    );
+    if (!variant) {
+        return res.status(404).json({ status: "fail", message: "Variant not found" });
     }
 
-    const existingItem = serverCart.items.find(
+    let cart = await Cart.findOne({ userId });
+    if (!cart) {
+        cart = await Cart.create({ userId, items: [] });
+    }
+
+    const existingItem = cart.items.find(
         (item) =>
             item.productId.toString() === productId &&
             item.selectedColor?.name === selectedColor?.name
     );
 
     if (existingItem) {
-        existingItem.quantity = Math.min(quantity + existingItem.quantity, product.stock);
-        existingItem.updatedAt = new Date(); // backend owns time
+        existingItem.quantity = Math.min(
+            existingItem.quantity + quantity,
+            variant.stock
+        );
     } else {
-        serverCart.items.push({
+        cart.items.push({
             productId: product._id,
-            title: product.title,
-            image: product.images[0],
-            slug: product.slug,
-            brand: product.brand,
-            price: product.price,
-            discountPrice: product.discountPrice,
-            quantity,
+            quantity: Math.min(quantity, variant.stock),
             selectedColor,
-            updatedAt: new Date()
         });
     }
 
-    await serverCart.save();
+    await cart.save();
+
+    const populatedItems = await populateCartItems(cart.items);
 
     res.status(200).json({
-        message: "Adding to cart was successful",
         status: "success",
-        data: serverCart,
+        message: "Adding to cart was successful",
+        data: { ...cart.toObject(), items: populatedItems },
     });
 };
 
@@ -77,150 +112,168 @@ export const addToCart = async (req: Request, res: ResType) => {
 export const updateCartItem = async (req: Request, res: ResType) => {
     const userId = req.user._id;
     const { productId } = req.params;
-    const { quantity } = req.body;
+    const { quantity, selectedColor } = req.body;
 
     const cart = await Cart.findOne({ userId });
-
     if (!cart) {
         return res.status(404).json({ status: "fail", message: "Cart not found" });
     }
 
-    const item = cart.items.find((i) => i.productId.toString() === productId);
-
+    const item = cart.items.find(
+        (i) =>
+            i.productId.toString() === productId &&
+            i.selectedColor?.name === selectedColor?.name
+    );
     if (!item) {
         return res.status(404).json({ status: "fail", message: "Item not found" });
     }
 
-    item.quantity = quantity;
+    const product = await Product.findById(productId);
+    const variant = product?.variants.find(
+        (v) => v.color.name === selectedColor?.name
+    );
+
+    item.quantity = Math.min(quantity, variant?.stock ?? quantity);
     await cart.save();
 
-    res.status(200).json({ status: "success", data: cart, message: "Updating the cart was successful" });
+    const populatedItems = await populateCartItems(cart.items);
+
+    res.status(200).json({
+        status: "success",
+        message: "Updating the cart was successful",
+        data: { ...cart.toObject(), items: populatedItems },
+    });
 };
 
 // DELETE /api/cart/items/:productId
 export const removeCartItem = async (req: Request, res: ResType) => {
     const userId = req.user._id;
     const { productId } = req.params;
+    const { selectedColor } = req.body;
 
     const cart = await Cart.findOne({ userId });
-
     if (!cart) {
         return res.status(404).json({ status: "fail", message: "Cart not found" });
     }
 
     cart.items = cart.items.filter(
-        (item) => item.productId.toString() !== productId
+        (item) =>
+            !(
+                item.productId.toString() === productId &&
+                item.selectedColor?.name === selectedColor?.name
+            )
     );
 
     await cart.save();
 
-    res.status(200).json({ status: "success", data: cart, message: "Removing the cart was successful" });
+    const populatedItems = await populateCartItems(cart.items);
+
+    res.status(200).json({
+        status: "success",
+        message: "Removing the cart item was successful",
+        data: { ...cart.toObject(), items: populatedItems },
+    });
 };
 
 // DELETE /api/cart
 export const clearCart = async (req: Request, res: ResType) => {
     const userId = req.user._id;
 
-    const cart = await Cart.findOne({ userId });
-
-    if (!cart) {
-        return res.status(404).json({ status: "fail", message: "Cart not found" });
-    }
-
-    cart.items = [];
-    await cart.save();
+    await Cart.findByIdAndUpdate({ userId }, { $set: { items: [] } });
 
     res.status(200).json({ status: "success", message: "Cart cleared" });
 };
 
-// POST /api/cart/merge  ← جدید، هنگام login صدا زده میشه
 // POST /api/cart/merge
 export const mergeCart = async (req: Request, res: ResType) => {
     const userId = req.user._id;
-
     const localItems: ICartItem[] = req.body.items ?? [];
 
     let dbCart = await Cart.findOne({ userId });
-
     if (!dbCart) {
         dbCart = new Cart({ userId, items: [] });
     }
 
-    // key generator
-    const getKey = (item: ICartItem) =>
-        `${item.productId.toString()}-${item.selectedColor?.name ?? "default"}`;
+    const getKey = (productId: string, colorName?: string) =>
+        `${productId}-${colorName ?? "default"}`;
 
-    // server cart → map
+    // map از cart موجود در DB
     const map = new Map<string, ICartItem>();
-
-    for (const item of dbCart.items ?? []) {
-        map.set(getKey(item), { ...item });
+    for (const item of dbCart.items) {
+        map.set(getKey(item.productId.toString(), item.selectedColor?.name), item);
     }
 
-    // fetch products once
-    const productIds = localItems.map(i => i.productId);
+    // fetch همه products یکبار
+    const productIds = localItems.map((i) => i.productId);
+    const products = await Product.find({ _id: { $in: productIds } });
+    const productMap = new Map(products.map((p) => [p._id.toString(), p]));
 
-    const products = await Product.find({
-        _id: { $in: productIds }
-    });
-
-    const productMap = new Map(
-        products.map(p => [p._id.toString(), p])
-    );
-
-    // merge logic
     for (const localItem of localItems) {
-
         const product = productMap.get(localItem.productId.toString());
-        const { stock } = product?.variants.find(
-            (variant) => variant?.color?.name === localItem?.selectedColor?.name
-
-        );
-
         if (!product) continue;
 
-        const key = getKey(localItem);
+        const variant = product.variants.find(
+            (v) => v.color.name === localItem.selectedColor?.name
+        );
+        if (!variant) continue;
+
+        const key = getKey(localItem.productId.toString(), localItem.selectedColor?.name);
         const existing = map.get(key);
 
-        if (!existing) {
-            map.set(key, {
-                ...localItem,
-                quantity: Math.min(localItem.quantity, stock)
-            });
-            continue;
-        }
-
         const newQty = Math.min(
-            existing.quantity + localItem.quantity,
-            product.stock
+            (existing?.quantity ?? 0) + localItem.quantity,
+            variant.stock
         );
-
-        map.set(key, {
-            ...existing,
-            quantity: newQty
-        });
 
         if (newQty <= 0) {
             map.delete(key);
+            continue;
         }
-    }
 
-    cart.items = Array.from(map.values());
-    if (!cart?.items?.length) {
-        await Cart.deleteOne({ userId });
+        map.set(key, {
+            productId: localItem.productId,
+            quantity: newQty,
+            ...(localItem.selectedColor && { selectedColor: localItem.selectedColor }),
+        });
+        dbCart.items = Array.from(map.values());
+
+        if (!dbCart.items.length) {
+            await Cart.deleteOne({ userId });
+            return res.status(200).json({
+                status: "success",
+                data: { items: [] },
+                message: "Cart is empty after merge",
+            });
+        }
+
+        await dbCart.save();
+
+        const populatedItems = await populateCartItems(dbCart.items);
 
         return res.status(200).json({
             status: "success",
-            data: null,
-            message: "Cart deleted because it was empty",
+            data: { ...dbCart.toObject(), items: populatedItems },
+            message: "Cart merged successfully",
         });
-    } await cart.save();
+    }
+}
+// POST /api/cart/getDetails
+export const getCartDetails = async (req: Request, res: ResType) => {
+    const items: ICartItem[] = req.body.items ?? [];
+
+    if (!items.length) {
+        return res.status(200).json({
+            status: "success",
+            data: [],
+            message: "The product with this id is not available"
+        });
+    }
+
+    const populatedItems = await populateCartItems(items);
 
     return res.status(200).json({
         status: "success",
-        data: cart,
-        message: "Cart merged successfully",
+        data: populatedItems,
+        message: "The population of the cart was successful"
     });
 };
-
-

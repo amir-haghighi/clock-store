@@ -4,8 +4,6 @@ import createMiddleware from "next-intl/middleware";
 import { routing } from "./routing";
 ;
 
-console.log("PROXY RUNNING");
-
 export default createMiddleware(routing);
 
 export const config = {

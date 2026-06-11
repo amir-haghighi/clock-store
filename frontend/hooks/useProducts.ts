@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { API } from "./types";
+import { ProductType } from "@/types/product";
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 export interface ProductFilters {
@@ -27,9 +28,7 @@ export interface CreateProductPayload {
     watchModel: string;
     description: string;
     images: string[];
-    price: number;
-    discountPrice?: number;
-    stock: number;
+    variants: { color: { name: string, hex: string }, price: number, discountPrice?: number, stock: number; }[]
     category: "luxury" | "sport" | "casual" | "smart" | "classic" | "dress";
     gender: "men" | "women" | "unisex";
     colors?: { name: string; hex: string }[];
@@ -73,7 +72,6 @@ export const useProducts = (filters: ProductFilters = {}) => {
         staleTime: 1000 * 60 * 5,
         retry: false,
     });
-    console.log({ data: query.data })
     return {
         products: query.data?.data ?? [],
         page: query.data?.page,
@@ -121,15 +119,26 @@ export const useFeaturedProducts = (filters: {}) => {
  * GET /api/products/:slug
  * جزئیات یک محصول
  */
+type ProductResponse = {
+    message: string;
+    status: string;
+    data: ProductType;
+};
+
 export const useProductBySlug = (slug: string) => {
-    const query = useQuery({
+    const query = useQuery<ProductResponse, Error>({
         queryKey: ["products", slug],
         queryFn: async () => {
             const res = await fetch(`${API}/api/v1/products/${slug}`, {
                 credentials: "include",
             });
-            const data = await res.json();
-            if (!res.ok) throw new Error(data.message);
+
+            const data: ProductResponse = await res.json();
+
+            if (!res.ok) {
+                throw new Error(data.message);
+            }
+
             return data;
         },
         enabled: !!slug,
@@ -138,7 +147,7 @@ export const useProductBySlug = (slug: string) => {
     });
 
     return {
-        product: query.data ? query.data?.data : null,
+        product: query.data?.data ?? null,
         loading: query.isLoading,
         isFetching: query.isFetching,
         error: query.error,

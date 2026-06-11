@@ -41,32 +41,58 @@ export default function CartPage() {
 
     // عملیات local از store، cartItems از useCart
 
-    const { cartItems, isLoading } = useCart();
-    console.log("here")
+    const { cartItems } = useCart();
+    const isLoading = false
+
     const [promoInput, setPromoInput] = useState("");
     const [appliedPromo, setAppliedPromo] = useState<string | null>(null);
     const [promoError, setPromoError] = useState("");
 
     const effectivePrice = (item: { price: number; discountPrice?: number }) => {
-        console.log({ item11111111: item })
         return !!item?.discountPrice && item.discountPrice < item.price && item.discountPrice > 0
             ? item.discountPrice
             : item.price;
     }
-    const subtotal = cartItems.reduce((s, it) => s + effectivePrice(it) * it.quantity, 0);
+    const validCartItems = [].filter((cartItem) =>
+        products.some((p) => p._id === cartItem.productId)
+    );
+
+
+
+    const subtotal = validCartItems.reduce((sum, item) => {
+        const product = products.find(p => p._id === item.productId);
+        if (!product) return sum;
+
+        const variant = product.variants.find(
+            v => v.color.name === item.selectedColor?.name
+        );
+
+        const price = variant?.discountPrice ?? variant?.price ?? 0;
+
+        return sum + price * item.quantity;
+    }, 0);
+
+    // const subtotal = products.reduce((s, product) => {
+    //     console.log({ product })
+    //     const selectedVariant = product.variants.find((variant) => variant.color.name === cartItems.find()selectedColor.name)
+
+    //     // return (s + effectivePrice(it) * it.quantity)
+    // }, 0);
+
+
     const discount = appliedPromo ? (subtotal * PROMO_CODES[appliedPromo]) / 100 : 0;
     const shipping = subtotal >= 500 ? 0 : 15;
     const total = subtotal - discount + shipping;
 
-    const applyPromo = () => {
-        const code = promoInput.trim().toUpperCase();
-        if (PROMO_CODES[code]) {
-            setAppliedPromo(code);
-            setPromoError("");
-        } else {
-            setPromoError(t("invalidPromo"));
-        }
-    };
+    // const applyPromo = () => {
+    //     const code = promoInput.trim().toUpperCase();
+    //     if (PROMO_CODES[code]) {
+    //         setAppliedPromo(code);
+    //         setPromoError("");
+    //     } else {
+    //         setPromoError(t("invalidPromo"));
+    //     }
+    // };
 
     const checkoutHandler = () => {
         if (!isAuthenticated) {
@@ -76,6 +102,9 @@ export default function CartPage() {
         }
         router.push("/checkout");
     };
+    //__ vars ______________________________________________________________________
+
+
 
     // ── Loading state ────────────────────────────────────────────────────────
     if (isLoading) {
@@ -87,7 +116,7 @@ export default function CartPage() {
     }
 
     // ── Empty state ──────────────────────────────────────────────────────────
-    if (cartItems.length === 0) {
+    if (validCartItems.length === 0) {
         return (
             <div className="min-h-screen bg-white dark:bg-zinc-950 flex flex-col items-center justify-center gap-6 px-4">
                 <div className="h-20 w-20 rounded-full bg-zinc-100 dark:bg-zinc-900 flex items-center justify-center">
@@ -108,6 +137,7 @@ export default function CartPage() {
             </div>
         );
     }
+
 
     // ── Main ─────────────────────────────────────────────────────────────────
     return (
@@ -135,16 +165,16 @@ export default function CartPage() {
 
                     {/* ── Item list ── */}
                     <div className="flex flex-col gap-3">
-                        {cartItems.map((cartItem) => {
+                        {validCartItems.map((cartItem) => {
 
                             const item = products.find((it) => it._id === cartItem.productId)
-                            if (!item) {
-                                removeItem(cartItem)
-                                return null;
-                            }
-                            const ep = effectivePrice(item);
-                            const imgSrc = item.image ? `${API}${item.image}` : null;
-                            const hasDiscount = !!item.discountPrice && item.discountPrice > 0;
+                            console.log({ amir: item })
+                            const selectedVariant = item.variants.find((it) => it.color.name === cartItem.selectedColor.name)
+
+                            const ep = effectivePrice(selectedVariant);
+                            const imgSrc = item.images.length > 0 ? `${API}${item.images[0]}` : null;
+
+                            const hasDiscount = !!selectedVariant.discountPrice && selectedVariant.discountPrice > 0;
 
 
                             return (
@@ -159,7 +189,7 @@ export default function CartPage() {
                                                 <img
                                                     src={imgSrc}
                                                     alt={item.title}
-                                                    className="h-full w-full object-cover"
+                                                    className="h-full w-full object-contain"
                                                 />
                                             ) : (
                                                 <div className="flex h-full w-full items-center justify-center">
@@ -193,14 +223,14 @@ export default function CartPage() {
                                         </div>
 
                                         {/* Color chip */}
-                                        {item.selectedColor && (
+                                        {cartItem.selectedColor && (
                                             <div className="flex items-center gap-1.5">
                                                 <span
                                                     className="h-3 w-3 rounded-full border border-zinc-200 dark:border-zinc-700"
-                                                    style={{ backgroundColor: item.selectedColor.hex }}
+                                                    style={{ backgroundColor: cartItem.selectedColor.hex }}
                                                 />
                                                 <span className="text-xs text-zinc-400">
-                                                    {item.selectedColor.name}
+                                                    {cartItem.selectedColor.name}
                                                 </span>
                                             </div>
                                         )}
@@ -209,11 +239,11 @@ export default function CartPage() {
                                         <div className="mt-auto flex items-center justify-between pt-2">
                                             <div className="flex items-baseline gap-1.5">
                                                 <span className="text-base font-bold text-zinc-900 dark:text-zinc-50">
-                                                    ${ep.toFixed(2)}
+                                                    ${ep?.toFixed(2)}
                                                 </span>
                                                 {hasDiscount && (
                                                     <span className="text-xs text-zinc-400 line-through">
-                                                        ${item.price.toFixed(2)}
+                                                        ${selectedVariant.price.toFixed(2)}
                                                     </span>
                                                 )}
                                             </div>
@@ -228,7 +258,7 @@ export default function CartPage() {
                                                 −
                                             </button>
                                             <span className="w-8 text-center text-xs font-semibold text-zinc-700 dark:text-zinc-300">
-                                                {item.quantity}
+                                                {cartItem.quantity}
                                             </span>
                                             <button
                                                 onClick={() => addItem({ ...item, quantity: 1 })}
@@ -258,7 +288,7 @@ export default function CartPage() {
                                         ${subtotal.toFixed(2)}
                                     </span>
                                 </div>
-                                {discount > 0 && (
+                                {/* {discount > 0 && (
                                     <div className="flex justify-between text-emerald-600 dark:text-emerald-400">
                                         <span className="flex items-center gap-1">
                                             <Tag className="h-3.5 w-3.5" />
@@ -266,7 +296,7 @@ export default function CartPage() {
                                         </span>
                                         <span>−${discount.toFixed(2)}</span>
                                     </div>
-                                )}
+                                )} */}
                                 <div className="flex justify-between text-zinc-600 dark:text-zinc-400">
                                     <span>{t("shipping")}</span>
                                     <span
@@ -293,7 +323,7 @@ export default function CartPage() {
                             </div>
 
                             {/* Promo code */}
-                            <div className="flex gap-2">
+                            {/* <div className="flex gap-2">
                                 <input
                                     value={promoInput}
                                     onChange={(e) => {
@@ -327,7 +357,7 @@ export default function CartPage() {
                             </div>
                             {promoError && (
                                 <p className="text-xs text-rose-500 -mt-3">{promoError}</p>
-                            )}
+                            )} */}
 
                             {/* CTA */}
                             <Button
