@@ -15,13 +15,13 @@ import {
     X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useCartStore } from "@/store/useCartStore";
 import { useCart } from "@/hooks/useCart";
 import { useUser } from "@/hooks/useUser";
 import { useRouter } from "@/i18n/navigation";
 import toast from "react-hot-toast";
 import { useTranslations } from "next-intl";
 import { useProducts } from "@/hooks/useProducts";
+import Loading from "../loading";
 
 const PROMO_CODES: Record<string, number> = {
     WATCH10: 10,
@@ -30,59 +30,29 @@ const PROMO_CODES: Record<string, number> = {
 
 export default function CartPage() {
     const t = useTranslations("cart");
-    const { products } = useProducts()
-    const { addItem, removeItem } = useCartStore();
-
+    const { addItem, items: cartItems, offlineCartItems, removeItem, increaseItem, decreaseItem, isLoading } = useCart();
     // const product =  products.find( (item)=> item.id )
     const { isAuthenticated } = useUser();
     const router = useRouter();
     const API = process.env.NEXT_PUBLIC_API_URL ?? "";
-
-
-    // عملیات local از store، cartItems از useCart
-
-    const { cartItems } = useCart();
-    const isLoading = false
-
-    const [promoInput, setPromoInput] = useState("");
-    const [appliedPromo, setAppliedPromo] = useState<string | null>(null);
-    const [promoError, setPromoError] = useState("");
 
     const effectivePrice = (item: { price: number; discountPrice?: number }) => {
         return !!item?.discountPrice && item.discountPrice < item.price && item.discountPrice > 0
             ? item.discountPrice
             : item.price;
     }
-    const validCartItems = [].filter((cartItem) =>
-        products.some((p) => p._id === cartItem.productId)
+
+    const subtotal = cartItems.reduce(
+        (sum, item) =>
+            sum + (item.discountPrice ?? item.price) * item.quantity,
+        0
     );
 
 
 
-    const subtotal = validCartItems.reduce((sum, item) => {
-        const product = products.find(p => p._id === item.productId);
-        if (!product) return sum;
 
-        const variant = product.variants.find(
-            v => v.color.name === item.selectedColor?.name
-        );
-
-        const price = variant?.discountPrice ?? variant?.price ?? 0;
-
-        return sum + price * item.quantity;
-    }, 0);
-
-    // const subtotal = products.reduce((s, product) => {
-    //     console.log({ product })
-    //     const selectedVariant = product.variants.find((variant) => variant.color.name === cartItems.find()selectedColor.name)
-
-    //     // return (s + effectivePrice(it) * it.quantity)
-    // }, 0);
-
-
-    const discount = appliedPromo ? (subtotal * PROMO_CODES[appliedPromo]) / 100 : 0;
     const shipping = subtotal >= 500 ? 0 : 15;
-    const total = subtotal - discount + shipping;
+    const total = subtotal + shipping;
 
     // const applyPromo = () => {
     //     const code = promoInput.trim().toUpperCase();
@@ -105,18 +75,13 @@ export default function CartPage() {
     //__ vars ______________________________________________________________________
 
 
-
     // ── Loading state ────────────────────────────────────────────────────────
-    if (isLoading) {
-        return (
-            <div className="min-h-screen bg-white dark:bg-zinc-950 flex items-center justify-center">
-                <div className="h-8 w-8 rounded-full border-2 border-zinc-300 border-t-zinc-900 animate-spin" />
-            </div>
-        );
+    if (!!isLoading) {
+        return <Loading />
     }
 
     // ── Empty state ──────────────────────────────────────────────────────────
-    if (validCartItems.length === 0) {
+    if (cartItems?.length === 0) {
         return (
             <div className="min-h-screen bg-white dark:bg-zinc-950 flex flex-col items-center justify-center gap-6 px-4">
                 <div className="h-20 w-20 rounded-full bg-zinc-100 dark:bg-zinc-900 flex items-center justify-center">
@@ -155,7 +120,7 @@ export default function CartPage() {
                         {t("title")}
                     </h1>
                     <Badge variant="secondary" className="ml-1 text-xs">
-                        {cartItems.reduce((s, it) => s + it.quantity, 0)} {t("items")}
+                        {cartItems?.reduce((s, it) => s + it.quantity, 0)} {t("items")}
                     </Badge>
                 </div>
             </div>
@@ -165,16 +130,16 @@ export default function CartPage() {
 
                     {/* ── Item list ── */}
                     <div className="flex flex-col gap-3">
-                        {validCartItems.map((cartItem) => {
+                        {cartItems?.map((item) => {
 
-                            const item = products.find((it) => it._id === cartItem.productId)
-                            console.log({ amir: item })
-                            const selectedVariant = item.variants.find((it) => it.color.name === cartItem.selectedColor.name)
 
-                            const ep = effectivePrice(selectedVariant);
-                            const imgSrc = item.images.length > 0 ? `${API}${item.images[0]}` : null;
 
-                            const hasDiscount = !!selectedVariant.discountPrice && selectedVariant.discountPrice > 0;
+                            const selectedVariant = item
+
+                            const ep = effectivePrice(item);
+                            const imgSrc = !!item.image ? `${API}${item.image}` : null;
+
+                            const hasDiscount = !!item?.discountPrice && selectedVariant?.discountPrice! > 0;
 
 
                             return (
@@ -223,14 +188,14 @@ export default function CartPage() {
                                         </div>
 
                                         {/* Color chip */}
-                                        {cartItem.selectedColor && (
+                                        {item.selectedColor && (
                                             <div className="flex items-center gap-1.5">
                                                 <span
                                                     className="h-3 w-3 rounded-full border border-zinc-200 dark:border-zinc-700"
-                                                    style={{ backgroundColor: cartItem.selectedColor.hex }}
+                                                    style={{ backgroundColor: item.selectedColor.hex }}
                                                 />
                                                 <span className="text-xs text-zinc-400">
-                                                    {cartItem.selectedColor.name}
+                                                    {item.selectedColor.name}
                                                 </span>
                                             </div>
                                         )}
@@ -252,16 +217,16 @@ export default function CartPage() {
                                         {/* Qty stepper */}
                                         <div className="flex items-center border mr-auto border-zinc-200 dark:border-zinc-700 rounded-lg overflow-hidden">
                                             <button
-                                                onClick={() => removeItem({ ...item, quantity: 1 })}
+                                                onClick={() => decreaseItem({ ...item })}
                                                 className="h-7 w-7 flex items-center justify-center text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors text-base leading-none cursor-pointer"
                                             >
                                                 −
                                             </button>
                                             <span className="w-8 text-center text-xs font-semibold text-zinc-700 dark:text-zinc-300">
-                                                {cartItem.quantity}
+                                                {item.quantity}
                                             </span>
                                             <button
-                                                onClick={() => addItem({ ...item, quantity: 1 })}
+                                                onClick={() => increaseItem({ ...item })}
                                                 disabled={item.quantity >= item.stock}
                                                 className="h-7 w-7 flex items-center justify-center text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors disabled:opacity-30 text-base leading-none cursor-pointer"
                                             >

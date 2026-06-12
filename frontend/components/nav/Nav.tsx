@@ -6,14 +6,14 @@ import { Link } from '@/i18n/navigation';
 import Logout from '../logging/logout';
 import { ShoppingCartIcon, WatchIcon } from 'lucide-react';
 import { usePathname } from 'next/navigation';
-import { useCartStore } from '@/store/useCartStore';
 import { useTranslations } from 'next-intl';
+import { useCart } from '@/hooks/useCart';
 
 export const Nav = () => {
     const t = useTranslations("nav")
     const tAuth = useTranslations("auth")
 
-    const cartItems = useCartStore(state => state.cartItems)
+    const { items: cartItems } = useCart()
 
     let totalItems = 0
     cartItems.forEach((item) => {

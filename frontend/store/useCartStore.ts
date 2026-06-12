@@ -17,7 +17,19 @@ export type AddItemArgumentType = CartItemType & {
 type CartStore = {
     cartItems: CartItemType[];
     addItem: (item: AddItemArgumentType) => void;
-    removeItem: (item: CartItemType) => void;
+    removeItem: (item: Omit<CartItemType, "quantity">) => void;
+
+    increaseItem: (item: {
+        productId: string;
+        selectedColor: { name: string; hex: string };
+        stock: number;
+    }) => void;
+
+    decreaseItem: (item: {
+        productId: string;
+        selectedColor: { name: string; hex: string };
+    }) => void;
+
     clearCart: () => void;
     setCart: (items: CartItemType[]) => void;
 };
@@ -73,6 +85,60 @@ export const useCartStore = create<CartStore>()(
                             )
                     ),
                 })),
+
+            increaseItem: (item) =>
+                set((state) => {
+                    const index = state.cartItems.findIndex(
+                        (i) =>
+                            i.productId === item.productId &&
+                            i.selectedColor?.name === item.selectedColor?.name
+                    );
+
+                    if (index === -1) return state;
+
+                    const updated = [...state.cartItems];
+                    const current = updated[index];
+
+                    updated[index] = {
+                        ...current,
+                        quantity: Math.min(current.quantity + 1, item.stock),
+                    };
+
+                    return { cartItems: updated };
+                }),
+
+            decreaseItem: (item) =>
+                set((state) => {
+                    const index = state.cartItems.findIndex(
+                        (i) =>
+                            i.productId === item.productId &&
+                            i.selectedColor?.name === item.selectedColor?.name
+                    );
+
+                    if (index === -1) return state;
+
+                    const updated = [...state.cartItems];
+                    const current = updated[index];
+
+                    if (current.quantity <= 1) {
+                        return {
+                            cartItems: state.cartItems.filter(
+                                (i) =>
+                                    !(
+                                        i.productId === item.productId &&
+                                        i.selectedColor?.name === item.selectedColor?.name
+                                    )
+                            ),
+                        };
+                    }
+
+                    updated[index] = {
+                        ...current,
+                        quantity: current.quantity - 1,
+                    };
+
+                    return { cartItems: updated };
+                }),
 
             setCart: (items) => set({ cartItems: items }),
             clearCart: () => set({ cartItems: [] }),

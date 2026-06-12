@@ -23,28 +23,28 @@ import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 import { useProductBySlug } from "@/hooks/useProducts";
 import toast from "react-hot-toast";
-import { useCartStore } from "@/store/useCartStore";
 import { useTranslations, useLocale } from "next-intl";
 import Loading from "../loading";
 import { ProductType } from "@/types/product";
+import { useCart } from "@/hooks/useCart";
 
 export default function ProductPage() {
     const t = useTranslations("product");
     const locale = useLocale();
     const params = useParams();
+    const { addItem } = useCart()
     const slug = params?.slug as string;
     const { product, loading, error } = useProductBySlug(slug);
     const [selectedImage, setSelectedImage] = useState(0);
     const [selectedVariant, setSelectedVariant] = useState<ProductType["variants"][0] | null>(null);
     const [quantity, setQuantity] = useState(1);
     const [wishlisted, setWishlisted] = useState(false);
-    const addItem = useCartStore((state) => state.addItem);
 
     useEffect(() => {
-        if (product) {
+        if (!!product?.variants) {
             setSelectedVariant(product.variants[0]);
         }
-    }, []);
+    }, [product]);
 
     if (loading) { return (<Loading />) }
 
@@ -101,7 +101,6 @@ export default function ProductPage() {
             addItem({
                 productId: product._id,
                 quantity,
-                stock,
                 selectedColor: selectedVariant.color!
             })
             toast.success(

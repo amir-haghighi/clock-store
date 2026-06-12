@@ -1,133 +1,320 @@
 "use client";
 
-import { useQuery, useMutation } from "@tanstack/react-query";
-import { useEffect, useRef } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { CartItemType, useCartStore } from "@/store/useCartStore";
 import { useUser } from "@/hooks/useUser";
-import { useProducts } from "./useProducts";
 
 const API = process.env.NEXT_PUBLIC_API_URL ?? "";
 
-// ── fetch cart ─────────────────────────────
-const fetchServerCart = async (): Promise<CartItemType[]> => {
-    console.log("fetching the cart ")
+// ───────────────────────────────────────────
+// Types
+// ───────────────────────────────────────────
+
+export type DetailedCartItemType = {
+    productId: string;
+    quantity: number;
+
+    selectedColor: {
+        name: string;
+        hex: string;
+    };
+
+    title: string;
+    slug: string;
+    brand: string;
+    image: string;
+
+    price: number;
+    discountPrice: number | null;
+    stock: number;
+};
+
+export type CartType = DetailedCartItemType[];
+
+// ───────────────────────────────────────────
+// fetch cart
+// ───────────────────────────────────────────
+
+const fetchServerCart = async (): Promise<DetailedCartItemType[]> => {
     const res = await fetch(`${API}/api/v1/cart`, {
         credentials: "include",
     });
 
-    if (!res.ok) throw new Error("fetch failed");
+    if (!res.ok) {
+        throw new Error("fetch failed");
+    }
 
     const data = await res.json();
     return data?.data?.items ?? [];
 };
 
-// ── send local cart to server for merge ───
-const pushCartForMerge = async (items: CartItemType[]): Promise<void> => {
-    await fetch(`${API}/api/v1/cart/merge`, {
+// ───────────────────────────────────────────
+// fetch details
+// ───────────────────────────────────────────
+
+const fetchCartDetails = async (
+    items: Partial<CartItemType>[]
+): Promise<DetailedCartItemType[]> => {
+    const res = await fetch(`${API}/api/v1/cart/getDetails`, {
         method: "POST",
         credentials: "include",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+            "Content-Type": "application/json",
+        },
         body: JSON.stringify({ items }),
     });
+
+    if (!res.ok) {
+        throw new Error("fetching cartDetails failed");
+    }
+
+    const data = await res.json();
+
+    return data?.data ?? [];
 };
 
+// ───────────────────────────────────────────
+// merge cart
+// ───────────────────────────────────────────
+
+const pushCartForMerge = async (
+    items: CartItemType[]
+): Promise<DetailedCartItemType[]> => {
+    const res = await fetch(`${API}/api/v1/cart/merge`, {
+        method: "POST",
+        credentials: "include",
+        headers: {
+            "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ items }),
+    });
+
+    if (!res.ok) {
+        throw new Error("cart merge failed");
+    }
+
+    const data = await res.json();
+
+    return data?.data?.items ?? [];
+};
+
+// ───────────────────────────────────────────
+// hook
+// ───────────────────────────────────────────
+
 export const useCart = () => {
-    const { cartItems: offlineCartItems, setCart, addItem: addItemOffline, clearCart } = useCartStore();
-    const { products } = useProducts()
-    console.log({ hori: products })
-    const hasSynced = useRef(false);
+    const {
+        cartItems: offlineCartItems,
+        removeItem: removeItemOffline,
+        decreaseItem: decreaseItemOffline,
+        increaseItem: increaseItemOffline,
+        addItem: addItemOffline,
+    } = useCartStore();
+
     const { isAuthenticated } = useUser();
-    const query = useQuery({
+    const queryClient = useQueryClient();
+
+    // ───────────────────────────────────────
+    // server cart
+    // ───────────────────────────────────────
+
+    const cartQuery = useQuery({
         queryKey: ["cart"],
         queryFn: fetchServerCart,
         enabled: isAuthenticated,
-        staleTime: 1000 * 60,
+        staleTime: 60_000,
     });
-    let addItem: (item: CartItemType) => void = () => { }
-    useEffect(() => {
-        // if the user is offline
+
+    // ───────────────────────────────────────
+    // get details for guest cart
+    // ───────────────────────────────────────
+    const cartKey = offlineCartItems
+        .map(i => `${i.productId}-${i.selectedColor.name}-${i.quantity}`)
+        .sort()
+        .join("|");
+    const detailsQuery = useQuery({
+        queryKey: ["cart-details", cartKey],
+        queryFn: () => fetchCartDetails(offlineCartItems),
+        enabled: !isAuthenticated && offlineCartItems.length > 0,
+        placeholderData: (prev) => prev,
+    });
+    // ───────────────────────────────────────
+    // merge cart
+    // ───────────────────────────────────────
+
+    const mergeMutation = useMutation({
+        mutationFn: pushCartForMerge,
+
+        onSuccess: (items) => {
+            queryClient.setQueryData(["cart"], items);
+        },
+    });
+
+    // ───────────────────────────────────────
+    // add item
+    // ───────────────────────────────────────
+    const addItem = async (item: CartItemType) => {
+
+        const detailedItem = detailsQuery.data?.find(
+            (val) =>
+                val.productId === item.productId &&
+                val.selectedColor.name === item.selectedColor.name
+        );
+
+        const stock = detailedItem?.stock ?? 0;
+        if (isAuthenticated) {
+            await mergeMutation.mutateAsync([item]);
+        }
+
+        addItemOffline({
+            ...item,
+            stock,
+        });
+    };
+    // ───────────────────────────────────────
+    // increase and decrease  item
+    // ───────────────────────────────────────
+    const increaseItem = async (item: {
+        productId: string;
+        selectedColor: { name: string; hex: string };
+    }) => {
+        const detailedItem = detailsQuery.data?.find(
+            (val) =>
+                val.productId === item.productId &&
+                val.selectedColor.name === item.selectedColor.name
+        );
+        const stock = detailedItem?.stock ?? 0;
+        // ───── GUEST ─────
         if (!isAuthenticated) {
-            addItem = (args: CartItemType) => addItemOffline({ ...args, stock })
+            increaseItemOffline({
+                productId: item.productId,
+                selectedColor: item.selectedColor,
+                stock
+            });
+            return;
         }
-        // online mode 
-        else {
 
+        // ───── AUTH ─────
+        const current = cartQuery.data?.find(
+            (i) =>
+                i.productId === item.productId &&
+                i.selectedColor?.name === item.selectedColor.name
+        );
 
+        await fetch(`${API}/api/v1/cart/items/${item.productId}`, {
+            method: "PATCH",
+            credentials: "include",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                quantity: (current?.quantity ?? 0) + 1,
+                selectedColor: item.selectedColor,
+            }),
+        });
 
-            // addItem = useMutation({
-            //     mutationFn: pushCartForMerge,
-            //     onError: () => {
-            //         const hasSynced = useRef(false);
-            //     }
-            //         onSuccess: () => {
-            //         const hasSynced = useRef(false);
-            //         clearCart()
+        queryClient.invalidateQueries({ queryKey: ["cart"] });
+    };
 
-            //         // پاک کردن user از cache
-            //         queryClient.setQueryData(["me"], null);
-            //         queryClient.invalidateQueries({ queryKey: ["me"] })
-            //         // یا:
-            //         // queryClient.removeQueries({ queryKey: ["me"] })
-            //     },
-            // })
-
+    const decreaseItem = async (item: {
+        productId: string;
+        selectedColor: { name: string; hex: string };
+    }) => {
+        if (!isAuthenticated) {
+            decreaseItemOffline({
+                productId: item.productId,
+                selectedColor: item.selectedColor,
+            });
+            return;
         }
-    }, [isAuthenticated])
 
+        const current = cartQuery.data?.find(
+            (i) =>
+                i.productId === item.productId &&
+                i.selectedColor?.name === item.selectedColor.name
+        );
 
+        const newQty = (current?.quantity ?? 1) - 1;
 
-    // console.log({ cartItemssss: offlineCartItems })
+        // if goes to 0 → remove instead of patch
+        if (newQty <= 0) {
+            await fetch(`${API}/api/v1/cart/items/${item.productId}`, {
+                method: "DELETE",
+                credentials: "include",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    selectedColor: item.selectedColor,
+                }),
+            });
 
+            queryClient.invalidateQueries({ queryKey: ["cart"] });
+            return;
+        }
 
+        await fetch(`${API}/api/v1/cart/items/${item.productId}`, {
+            method: "PATCH",
+            credentials: "include",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                quantity: newQty,
+                selectedColor: item.selectedColor,
+            }),
+        });
 
+        queryClient.invalidateQueries({ queryKey: ["cart"] });
+    };
 
-    // console.log({ dataaaa: query.data })
+    const removeItem = async (item: {
+        productId: string;
+        selectedColor: { name: string; hex: string };
+    }) => {
 
-    // const sourceOfTruth = query?.data ??
-    //     // فقط hydrate از سرور (بدون merge در فرانت)
-    //     useEffect(() => {
-    //         if (!isAuthenticated) return;
-    //         if (!query.data) return;
-    //         if (hasSynced.current) return;
+        if (!isAuthenticated) {
+            removeItemOffline({
+                productId: item.productId,
+                selectedColor: item.selectedColor,
+            });
+            return;
+        }
 
-    //         // setCart(query.data);
-    //         hasSynced.current = true;
+        await fetch(`${API}/api/v1/cart/items/${item.productId}`, {
+            method: "DELETE",
+            credentials: "include",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                selectedColor: item.selectedColor,
+            }),
+        });
 
-    //         // ارسال cart لوکال برای merge در بک‌اند
-    //         pushCartForMerge(cartItems);
-    //     }, [query.data, isAuthenticated]);
+        queryClient.invalidateQueries({ queryKey: ["cart"] });
+    };
+    // ───────────────────────────────────────
+    // items
+    // ───────────────────────────────────────
 
-    // useEffect(() => {
-    //     if (!isAuthenticated) {
-    //         hasSynced.current = false;
-    //     }
-    // }, [isAuthenticated]);
+    const items = isAuthenticated
+        ? cartQuery.data ?? []
+        : detailsQuery.data ?? [];
+    // ───────────────────────────────────────
+    // loading
+    // ───────────────────────────────────────
 
-    // const syncMutation = useMutation({
-    //     mutationFn: () => pushCartForMerge(cartItems),
-    // });
+    const isLoading = isAuthenticated
+        ? cartQuery.isPending
+        : detailsQuery.isPending
 
-    // if (query?.data) {
-    //     const cartDetails = query.data.map(cartItem => {
-    //         console.log({ cartItem })
-    //         const product = products.find(p => p.id === cartItem.id);
-
-    //         return {
-    //             ...product,
-    //             quantity: cartItem.quantity,
-    //             selectedColor: cartItem.selectedColor
-    //         };
-    //     });
-    // }
-
-    // return {
-    //     // cartItems,   
-    //     isLoading: isAuthenticated && query.isLoading,
-    //     isError: query.isError,
-    //     refetch: query.refetch,
-    //     syncCart: syncMutation.mutate,
-    // };
     return {
-        cartItems: []
-    }
+        items,
+
+        addItem,
+        removeItem,
+        increaseItem,
+        decreaseItem,
+        offlineCartItems,
+
+        isLoading,
+        isSyncing: mergeMutation.isPending,
+        isError:
+            cartQuery.isError ||
+            detailsQuery.isError ||
+            mergeMutation.isError
+    };
 };

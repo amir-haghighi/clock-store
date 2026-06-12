@@ -186,76 +186,84 @@ export const clearCart = async (req: Request, res: ResType) => {
 
 // POST /api/cart/merge
 export const mergeCart = async (req: Request, res: ResType) => {
-    const userId = req.user._id;
-    const localItems: ICartItem[] = req.body.items ?? [];
+    try {
+        const userId = req.user._id;
+        const localItems: ICartItem[] = req.body.items ?? [];
 
-    let dbCart = await Cart.findOne({ userId });
-    if (!dbCart) {
-        dbCart = new Cart({ userId, items: [] });
-    }
-
-    const getKey = (productId: string, colorName?: string) =>
-        `${productId}-${colorName ?? "default"}`;
-
-    // map از cart موجود در DB
-    const map = new Map<string, ICartItem>();
-    for (const item of dbCart.items) {
-        map.set(getKey(item.productId.toString(), item.selectedColor?.name), item);
-    }
-
-    // fetch همه products یکبار
-    const productIds = localItems.map((i) => i.productId);
-    const products = await Product.find({ _id: { $in: productIds } });
-    const productMap = new Map(products.map((p) => [p._id.toString(), p]));
-
-    for (const localItem of localItems) {
-        const product = productMap.get(localItem.productId.toString());
-        if (!product) continue;
-
-        const variant = product.variants.find(
-            (v) => v.color.name === localItem.selectedColor?.name
-        );
-        if (!variant) continue;
-
-        const key = getKey(localItem.productId.toString(), localItem.selectedColor?.name);
-        const existing = map.get(key);
-
-        const newQty = Math.min(
-            (existing?.quantity ?? 0) + localItem.quantity,
-            variant.stock
-        );
-
-        if (newQty <= 0) {
-            map.delete(key);
-            continue;
+        let dbCart = await Cart.findOne({ userId });
+        if (!dbCart) {
+            dbCart = new Cart({ userId, items: [] });
         }
 
-        map.set(key, {
-            productId: localItem.productId,
-            quantity: newQty,
-            ...(localItem.selectedColor && { selectedColor: localItem.selectedColor }),
-        });
-        dbCart.items = Array.from(map.values());
+        const getKey = (productId: string, colorName?: string) =>
+            `${productId}-${colorName ?? "default"}`;
 
-        if (!dbCart.items.length) {
-            await Cart.deleteOne({ userId });
+        // map از cart موجود در DB
+        const map = new Map<string, ICartItem>();
+        for (const item of dbCart.items) {
+            map.set(getKey(item.productId.toString(), item.selectedColor?.name), item);
+        }
+
+        // fetch همه products یکبار
+        const productIds = localItems.map((i) => i.productId);
+        const products = await Product.find({ _id: { $in: productIds } });
+        const productMap = new Map(products.map((p) => [p._id.toString(), p]));
+
+        for (const localItem of localItems) {
+            const product = productMap.get(localItem.productId.toString());
+            if (!product) continue;
+
+            const variant = product.variants.find(
+                (v) => v.color.name === localItem.selectedColor?.name
+            );
+            if (!variant) continue;
+
+            const key = getKey(localItem.productId.toString(), localItem.selectedColor?.name);
+            const existing = map.get(key);
+
+            const newQty = Math.min(
+                (existing?.quantity ?? 0) + localItem.quantity,
+                variant.stock
+            );
+
+            if (newQty <= 0) {
+                map.delete(key);
+                continue;
+            }
+
+            map.set(key, {
+                productId: localItem.productId,
+                quantity: newQty,
+                ...(localItem.selectedColor && { selectedColor: localItem.selectedColor }),
+            });
+            dbCart.items = Array.from(map.values());
+
+            if (!dbCart.items.length) {
+                await Cart.deleteOne({ userId });
+                return res.status(200).json({
+                    status: "success",
+                    data: { items: [] },
+                    message: "Cart is empty after merge",
+                });
+            }
+
+            await dbCart.save();
+
+            const populatedItems = await populateCartItems(dbCart.items);
+
             return res.status(200).json({
                 status: "success",
-                data: { items: [] },
-                message: "Cart is empty after merge",
+                data: { ...dbCart.toObject(), items: populatedItems },
+                message: "Cart merged successfully",
             });
         }
-
-        await dbCart.save();
-
-        const populatedItems = await populateCartItems(dbCart.items);
-
-        return res.status(200).json({
-            status: "success",
-            data: { ...dbCart.toObject(), items: populatedItems },
-            message: "Cart merged successfully",
+    } catch (error) {
+        return res.status(400).json({
+            status: "fail",
+            message: error?.message ?? error
         });
     }
+
 }
 // POST /api/cart/getDetails
 export const getCartDetails = async (req: Request, res: ResType) => {
