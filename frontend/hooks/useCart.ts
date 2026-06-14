@@ -3,6 +3,8 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { CartItemType, useCartStore } from "@/store/useCartStore";
 import { useUser } from "@/hooks/useUser";
+import { useEffect, useRef } from "react";
+import api from "@/lib/api";
 
 const API = process.env.NEXT_PUBLIC_API_URL ?? "";
 
@@ -13,17 +15,14 @@ const API = process.env.NEXT_PUBLIC_API_URL ?? "";
 export type DetailedCartItemType = {
     productId: string;
     quantity: number;
-
     selectedColor: {
         name: string;
         hex: string;
     };
-
     title: string;
     slug: string;
     brand: string;
     image: string;
-
     price: number;
     discountPrice: number | null;
     stock: number;
@@ -32,70 +31,49 @@ export type DetailedCartItemType = {
 export type CartType = DetailedCartItemType[];
 
 // ───────────────────────────────────────────
-// fetch cart
+// API helpers
 // ───────────────────────────────────────────
 
 const fetchServerCart = async (): Promise<DetailedCartItemType[]> => {
-    const res = await fetch(`${API}/api/v1/cart`, {
-        credentials: "include",
-    });
-
-    if (!res.ok) {
-        throw new Error("fetch failed");
-    }
-
-    const data = await res.json();
+    const res = await api.get("/cart")
+    let { data } = await api.get('/cart');
     return data?.data?.items ?? [];
 };
-
-// ───────────────────────────────────────────
-// fetch details
-// ───────────────────────────────────────────
 
 const fetchCartDetails = async (
     items: Partial<CartItemType>[]
 ): Promise<DetailedCartItemType[]> => {
-    const res = await fetch(`${API}/api/v1/cart/getDetails`, {
-        method: "POST",
-        credentials: "include",
-        headers: {
-            "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ items }),
-    });
-
-    if (!res.ok) {
-        throw new Error("fetching cartDetails failed");
-    }
-
-    const data = await res.json();
-
+    if (!items.length) return [];
+    const { data } = await api.post("cart/getDetails", { items })
     return data?.data ?? [];
 };
 
-// ───────────────────────────────────────────
-// merge cart
-// ───────────────────────────────────────────
-
-const pushCartForMerge = async (
+const pushCartMerge = async (
     items: CartItemType[]
 ): Promise<DetailedCartItemType[]> => {
-    const res = await fetch(`${API}/api/v1/cart/merge`, {
-        method: "POST",
-        credentials: "include",
-        headers: {
-            "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ items }),
-    });
-
-    if (!res.ok) {
-        throw new Error("cart merge failed");
-    }
-
-    const data = await res.json();
-
+    const { data } = await api.post("/cart/merge", { items });
     return data?.data?.items ?? [];
+};
+
+const apiAddItem = async (item: CartItemType): Promise<DetailedCartItemType[]> => {
+
+    const { data } = await api.post("/cart/items", item)
+    return data?.data?.items ?? [];
+};
+
+const apiUpdateItem = async (
+    productId: string,
+    quantity: number,
+    selectedColor: { name: string; hex: string }
+): Promise<void> => {
+    await api.patch(`/cart/items/${productId}`, { quantity, selectedColor })
+};
+
+const apiRemoveItem = async (
+    productId: string,
+    selectedColor: { name: string; hex: string }
+): Promise<void> => {
+    api.delete(`/cart/items/${productId}`, { data: selectedColor })
 };
 
 // ───────────────────────────────────────────
@@ -109,13 +87,17 @@ export const useCart = () => {
         decreaseItem: decreaseItemOffline,
         increaseItem: increaseItemOffline,
         addItem: addItemOffline,
+        clearCart: clearOfflineItems
     } = useCartStore();
 
     const { isAuthenticated } = useUser();
     const queryClient = useQueryClient();
 
+    // track previous auth state to detect login/logout transitions
+    const prevAuthRef = useRef<boolean | null>(null);
+
     // ───────────────────────────────────────
-    // server cart
+    // server cart (auth only)
     // ───────────────────────────────────────
 
     const cartQuery = useQuery({
@@ -126,103 +108,159 @@ export const useCart = () => {
     });
 
     // ───────────────────────────────────────
-    // get details for guest cart
+    // guest cart details (guest only)
+    // quantity intentionally excluded from key — product details don't
+    // change when quantity changes, only when items/colors change
     // ───────────────────────────────────────
+
     const cartKey = offlineCartItems
-        .map(i => `${i.productId}-${i.selectedColor.name}-${i.quantity}`)
+        .map((i) => `${i.productId}-${i.selectedColor.name}`)
         .sort()
         .join("|");
+
     const detailsQuery = useQuery({
         queryKey: ["cart-details", cartKey],
         queryFn: () => fetchCartDetails(offlineCartItems),
         enabled: !isAuthenticated && offlineCartItems.length > 0,
         placeholderData: (prev) => prev,
     });
+
     // ───────────────────────────────────────
-    // merge cart
+    // merge mutation (used on login)
     // ───────────────────────────────────────
 
     const mergeMutation = useMutation({
-        mutationFn: pushCartForMerge,
-
+        mutationFn: pushCartMerge,
         onSuccess: (items) => {
             queryClient.setQueryData(["cart"], items);
+            clearOfflineItems();
         },
     });
 
     // ───────────────────────────────────────
-    // add item
+    // login transition: merge local → server, then clear local
+    // logout transition: copy server cart → Zustand
     // ───────────────────────────────────────
-    const addItem = async (item: CartItemType) => {
 
-        const detailedItem = detailsQuery.data?.find(
-            (val) =>
-                val.productId === item.productId &&
-                val.selectedColor.name === item.selectedColor.name
-        );
+    useEffect(() => {
+        const prev = prevAuthRef.current;
 
-        const stock = detailedItem?.stock ?? 0;
-        if (isAuthenticated) {
-            await mergeMutation.mutateAsync([item]);
+        // login: prev was false/null, now true
+        if (prev === false && isAuthenticated) {
+            if (offlineCartItems.length > 0) {
+                mergeMutation.mutate(offlineCartItems);
+            } else {
+                // nothing to merge, just clear in case
+                clearOfflineItems();
+            }
         }
 
-        addItemOffline({
-            ...item,
-            stock,
-        });
+        // logout: prev was true, now false
+        if (prev === true && !isAuthenticated) {
+            const serverItems = queryClient.getQueryData<DetailedCartItemType[]>(["cart"]);
+            if (serverItems?.length) {
+                // convert DetailedCartItemType → CartItemType for Zustand
+                const offlineItems: CartItemType[] = serverItems.map((i) => ({
+                    productId: i.productId,
+                    quantity: i.quantity,
+                    selectedColor: i.selectedColor,
+                    stock: i.stock,
+                }));
+                setOfflineItems(offlineItems);
+            }
+            queryClient.removeQueries({ queryKey: ["cart"] });
+        }
+
+        prevAuthRef.current = isAuthenticated;
+    }, [isAuthenticated]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    // ───────────────────────────────────────
+    // addItem
+    // ───────────────────────────────────────
+    const addItem = async (item: CartItemType) => {
+        if (isAuthenticated) {
+            try {
+                const updatedItems = await apiAddItem(item);
+                queryClient.setQueryData(["cart"], updatedItems);
+            } catch (err) {
+                console.error("addItem failed:", err);
+            }
+            return;
+        }
+
+        // guest: fetch details on-demand برای این آیتم خاص
+        let stock = 999; // fallback امن
+        try {
+            const details = await fetchCartDetails([item]);
+            const detailedItem = details.find(
+                (v) => v.productId === item.productId &&
+                    v.selectedColor.name === item.selectedColor.name
+            );
+            stock = detailedItem?.stock ?? 999;
+        } catch {
+            // اگه fetch fail شد، با stock=999 ادامه بده
+        }
+
+        addItemOffline({ ...item, stock });
     };
     // ───────────────────────────────────────
-    // increase and decrease  item
+    // increaseItem
     // ───────────────────────────────────────
+
     const increaseItem = async (item: {
         productId: string;
         selectedColor: { name: string; hex: string };
     }) => {
-        const detailedItem = detailsQuery.data?.find(
-            (val) =>
-                val.productId === item.productId &&
-                val.selectedColor.name === item.selectedColor.name
-        );
-        const stock = detailedItem?.stock ?? 0;
-        // ───── GUEST ─────
         if (!isAuthenticated) {
+            const detailedItem = detailsQuery.data?.find(
+                (v) =>
+                    v.productId === item.productId &&
+                    v.selectedColor.name === item.selectedColor.name
+            );
             increaseItemOffline({
                 productId: item.productId,
                 selectedColor: item.selectedColor,
-                stock
+                stock: detailedItem?.stock ?? 0,
             });
             return;
         }
 
-        // ───── AUTH ─────
         const current = cartQuery.data?.find(
             (i) =>
                 i.productId === item.productId &&
                 i.selectedColor?.name === item.selectedColor.name
         );
 
-        await fetch(`${API}/api/v1/cart/items/${item.productId}`, {
-            method: "PATCH",
-            credentials: "include",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-                quantity: (current?.quantity ?? 0) + 1,
-                selectedColor: item.selectedColor,
-            }),
-        });
-
-        queryClient.invalidateQueries({ queryKey: ["cart"] });
+        try {
+            await apiUpdateItem(
+                item.productId,
+                (current?.quantity ?? 0) + 1,
+                item.selectedColor
+            );
+            queryClient.invalidateQueries({ queryKey: ["cart"] });
+        } catch (err) {
+            console.error("increaseItem failed:", err);
+        }
     };
+
+    // ───────────────────────────────────────
+    // decreaseItem
+    // ───────────────────────────────────────
 
     const decreaseItem = async (item: {
         productId: string;
         selectedColor: { name: string; hex: string };
     }) => {
         if (!isAuthenticated) {
-            decreaseItemOffline({
-                productId: item.productId,
-                selectedColor: item.selectedColor,
-            });
+            const current = offlineCartItems.find(
+                i => i.productId === item.productId &&
+                    i.selectedColor.name === item.selectedColor.name
+            );
+            if ((current?.quantity ?? 1) <= 1) {
+                removeItemOffline({ productId: item.productId, selectedColor: item.selectedColor });
+            } else {
+                decreaseItemOffline({ productId: item.productId, selectedColor: item.selectedColor });
+            }
             return;
         }
 
@@ -234,39 +272,26 @@ export const useCart = () => {
 
         const newQty = (current?.quantity ?? 1) - 1;
 
-        // if goes to 0 → remove instead of patch
-        if (newQty <= 0) {
-            await fetch(`${API}/api/v1/cart/items/${item.productId}`, {
-                method: "DELETE",
-                credentials: "include",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    selectedColor: item.selectedColor,
-                }),
-            });
-
+        try {
+            if (newQty <= 0) {
+                await apiRemoveItem(item.productId, item.selectedColor);
+            } else {
+                await apiUpdateItem(item.productId, newQty, item.selectedColor);
+            }
             queryClient.invalidateQueries({ queryKey: ["cart"] });
-            return;
+        } catch (err) {
+            console.error("decreaseItem failed:", err);
         }
-
-        await fetch(`${API}/api/v1/cart/items/${item.productId}`, {
-            method: "PATCH",
-            credentials: "include",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-                quantity: newQty,
-                selectedColor: item.selectedColor,
-            }),
-        });
-
-        queryClient.invalidateQueries({ queryKey: ["cart"] });
     };
+
+    // ───────────────────────────────────────
+    // removeItem
+    // ───────────────────────────────────────
 
     const removeItem = async (item: {
         productId: string;
         selectedColor: { name: string; hex: string };
     }) => {
-
         if (!isAuthenticated) {
             removeItemOffline({
                 productId: item.productId,
@@ -275,46 +300,38 @@ export const useCart = () => {
             return;
         }
 
-        await fetch(`${API}/api/v1/cart/items/${item.productId}`, {
-            method: "DELETE",
-            credentials: "include",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-                selectedColor: item.selectedColor,
-            }),
-        });
-
-        queryClient.invalidateQueries({ queryKey: ["cart"] });
+        try {
+            await apiRemoveItem(item.productId, item.selectedColor);
+            queryClient.invalidateQueries({ queryKey: ["cart"] });
+        } catch (err) {
+            console.error("removeItem failed:", err);
+        }
     };
+
     // ───────────────────────────────────────
-    // items
+    // derived
     // ───────────────────────────────────────
 
-    const items = isAuthenticated
+    const items: DetailedCartItemType[] = isAuthenticated
         ? cartQuery.data ?? []
         : detailsQuery.data ?? [];
-    // ───────────────────────────────────────
-    // loading
-    // ───────────────────────────────────────
 
     const isLoading = isAuthenticated
         ? cartQuery.isPending
-        : detailsQuery.isPending
+        : detailsQuery.isPending && offlineCartItems.length > 0;
 
     return {
         items,
+        offlineCartItems,
 
         addItem,
         removeItem,
         increaseItem,
         decreaseItem,
-        offlineCartItems,
 
         isLoading,
         isSyncing: mergeMutation.isPending,
         isError:
-            cartQuery.isError ||
-            detailsQuery.isError ||
-            mergeMutation.isError
+            cartQuery.isError || detailsQuery.isError || mergeMutation.isError,
     };
 };

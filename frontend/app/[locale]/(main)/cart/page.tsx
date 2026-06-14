@@ -132,7 +132,7 @@ export default function CartPage() {
                     <div className="flex flex-col gap-3">
                         {cartItems?.map((item) => {
 
-
+                            console.log({ itemmmmmmm: item })
 
                             const selectedVariant = item
 
@@ -226,7 +226,10 @@ export default function CartPage() {
                                                 {item.quantity}
                                             </span>
                                             <button
-                                                onClick={() => increaseItem({ ...item })}
+                                                onClick={() => {
+                                                    increaseItem({ ...item })
+                                                    console.log("hi")
+                                                }}
                                                 disabled={item.quantity >= item.stock}
                                                 className="h-7 w-7 flex items-center justify-center text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors disabled:opacity-30 text-base leading-none cursor-pointer"
                                             >
@@ -254,14 +257,14 @@ export default function CartPage() {
                                     </span>
                                 </div>
                                 {/* {discount > 0 && (
-                                    <div className="flex justify-between text-emerald-600 dark:text-emerald-400">
-                                        <span className="flex items-center gap-1">
-                                            <Tag className="h-3.5 w-3.5" />
-                                            {t("promo")} ({appliedPromo})
-                                        </span>
-                                        <span>−${discount.toFixed(2)}</span>
-                                    </div>
-                                )} */}
+                                        <div className="flex justify-between text-emerald-600 dark:text-emerald-400">
+                                            <span className="flex items-center gap-1">
+                                                <Tag className="h-3.5 w-3.5" />
+                                                {t("promo")} ({appliedPromo})
+                                            </span>
+                                            <span>−${discount.toFixed(2)}</span>
+                                        </div>
+                                    )} */}
                                 <div className="flex justify-between text-zinc-600 dark:text-zinc-400">
                                     <span>{t("shipping")}</span>
                                     <span
@@ -289,40 +292,40 @@ export default function CartPage() {
 
                             {/* Promo code */}
                             {/* <div className="flex gap-2">
-                                <input
-                                    value={promoInput}
-                                    onChange={(e) => {
-                                        setPromoInput(e.target.value);
-                                        setPromoError("");
-                                    }}
-                                    onKeyDown={(e) => e.key === "Enter" && applyPromo()}
-                                    placeholder={t("promoPlaceholder")}
-                                    className="flex-1 h-9 px-3 text-sm rounded-lg border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 text-zinc-800 dark:text-zinc-200 placeholder:text-zinc-400 focus:outline-none focus:ring-1 focus:ring-zinc-400"
-                                />
-                                {appliedPromo ? (
-                                    <button
-                                        onClick={() => {
-                                            setAppliedPromo(null);
-                                            setPromoInput("");
+                                    <input
+                                        value={promoInput}
+                                        onChange={(e) => {
+                                            setPromoInput(e.target.value);
+                                            setPromoError("");
                                         }}
-                                        className="h-9 w-9 flex items-center justify-center rounded-lg border border-zinc-200 dark:border-zinc-700 text-zinc-400 hover:text-rose-500 transition-colors"
-                                    >
-                                        <X className="h-4 w-4" />
-                                    </button>
-                                ) : (
-                                    <Button
-                                        variant="outline"
-                                        size="sm"
-                                        onClick={applyPromo}
-                                        className="h-9 rounded-lg px-3 text-xs font-semibold"
-                                    >
-                                        {t("apply")}
-                                    </Button>
-                                )}
-                            </div>
-                            {promoError && (
-                                <p className="text-xs text-rose-500 -mt-3">{promoError}</p>
-                            )} */}
+                                        onKeyDown={(e) => e.key === "Enter" && applyPromo()}
+                                        placeholder={t("promoPlaceholder")}
+                                        className="flex-1 h-9 px-3 text-sm rounded-lg border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 text-zinc-800 dark:text-zinc-200 placeholder:text-zinc-400 focus:outline-none focus:ring-1 focus:ring-zinc-400"
+                                    />
+                                    {appliedPromo ? (
+                                        <button
+                                            onClick={() => {
+                                                setAppliedPromo(null);
+                                                setPromoInput("");
+                                            }}
+                                            className="h-9 w-9 flex items-center justify-center rounded-lg border border-zinc-200 dark:border-zinc-700 text-zinc-400 hover:text-rose-500 transition-colors"
+                                        >
+                                            <X className="h-4 w-4" />
+                                        </button>
+                                    ) : (
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={applyPromo}
+                                            className="h-9 rounded-lg px-3 text-xs font-semibold"
+                                        >
+                                            {t("apply")}
+                                        </Button>
+                                    )}
+                                </div>
+                                {promoError && (
+                                    <p className="text-xs text-rose-500 -mt-3">{promoError}</p>
+                                )} */}
 
                             {/* CTA */}
                             <Button

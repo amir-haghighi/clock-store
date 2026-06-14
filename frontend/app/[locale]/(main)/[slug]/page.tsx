@@ -36,15 +36,12 @@ export default function ProductPage() {
     const slug = params?.slug as string;
     const { product, loading, error } = useProductBySlug(slug);
     const [selectedImage, setSelectedImage] = useState(0);
-    const [selectedVariant, setSelectedVariant] = useState<ProductType["variants"][0] | null>(null);
+    const [selectedVariantId, setSelectedVariantId] = useState<string | null>(null);
+    const selectedVariant = product?.variants?.find(v => v._id === selectedVariantId) ?? product?.variants?.[0] ?? null;
     const [quantity, setQuantity] = useState(1);
     const [wishlisted, setWishlisted] = useState(false);
 
-    useEffect(() => {
-        if (!!product?.variants) {
-            setSelectedVariant(product.variants[0]);
-        }
-    }, [product]);
+
 
     if (loading) { return (<Loading />) }
 
@@ -97,7 +94,10 @@ export default function ProductPage() {
 
     // ── handlers ─────────────────────────────────────────────────────────────
     const addToCartHandler = () => {
+        console.log({ addToCartHandler })
         if (selectedVariant) {
+            console.log({ selectedVariant })
+            console.log(quantity)
             addItem({
                 productId: product._id,
                 quantity,
@@ -359,7 +359,7 @@ export default function ProductPage() {
                                             <button
                                                 key={i}
                                                 title={v.color.name}
-                                                onClick={() => setSelectedVariant(v)}
+                                                onClick={() => setSelectedVariantId(v._id)}
                                                 className={cn(
                                                     "h-8 w-8 rounded-full border-2 cursor-pointer transition-all duration-200 flex items-center justify-center ",
                                                     selectedVariant?._id === v._id
@@ -554,12 +554,4 @@ export default function ProductPage() {
             </div>
         </div>
     );
-}
-
-function isLightColor(hex: string): boolean {
-    const h = hex.replace("#", "");
-    const r = parseInt(h.substring(0, 2), 16);
-    const g = parseInt(h.substring(2, 4), 16);
-    const b = parseInt(h.substring(4, 6), 16);
-    return (r * 299 + g * 587 + b * 114) / 1000 > 128;
 }

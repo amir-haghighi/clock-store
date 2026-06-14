@@ -1,3 +1,4 @@
+import api from "@/lib/api";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 const API = process.env.NEXT_PUBLIC_API_URL;
@@ -7,17 +8,7 @@ type LogoutResponse = {
 };
 
 const logoutUser = async (): Promise<LogoutResponse> => {
-    const res = await fetch(`${API}/api/v1/auth/logout`, {
-        method: "POST",
-        credentials: "include",
-    });
-
-    const data = await res.json();
-
-    if (!res.ok) {
-        throw data;
-    }
-
+    const { data } = await api.post(`/auth/logout`)
     return data;
 };
 

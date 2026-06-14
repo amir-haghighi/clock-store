@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { API } from "./types";
 import { ProductType } from "@/types/product";
+import { deleteProductById, deleteReviewById, getProductBySlug, getProductByUrl, getReviewsFromProductId, postProducts, putProduct } from "@/services/productService";
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 export interface ProductFilters {
@@ -51,24 +52,17 @@ export interface CreateProductPayload {
  * GET /api/products
  * لیست محصولات با فیلتر و صفحه‌بندی
  */
+const params = new URLSearchParams();
 export const useProducts = (filters: ProductFilters = {}) => {
 
-    const params = new URLSearchParams();
+
     Object.entries(filters).forEach(([key, val]) => {
         if (val !== undefined && val !== "") params.set(key, String(val));
     });
 
     const query = useQuery({
         queryKey: ["products", filters],
-        queryFn: async () => {
-            const res = await fetch(`${API}/api/v1/products?${params.toString()}`, {
-                headers: { "Content-Type": "application/json" },
-                credentials: "include",
-            });
-            const data = await res.json();
-            if (!res.ok) throw new Error(data.message);
-            return data;
-        },
+        queryFn: () => getProductByUrl(params),
         staleTime: 1000 * 60 * 5,
         retry: false,
     });
@@ -90,18 +84,9 @@ export const useProducts = (filters: ProductFilters = {}) => {
  */
 
 export const useFeaturedProducts = (filters: {}) => {
-    // const params = new URLSearchParams(filters); 
     const query = useQuery({
         queryKey: ["products", "featured", filters],
-        queryFn: async () => {
-            const params = new URLSearchParams(filters);
-            const res = await fetch(`${API}/api/v1/products/?${params.toString()}`, {
-                credentials: "include",
-            });
-            const data = await res.json();
-            if (!res.ok) throw new Error(data.message);
-            return data;
-        },
+        queryFn: () => getProductByUrl(params),
         staleTime: 1000 * 60 * 10,
         retry: false,
     });
@@ -128,19 +113,7 @@ type ProductResponse = {
 export const useProductBySlug = (slug: string) => {
     const query = useQuery<ProductResponse, Error>({
         queryKey: ["products", slug],
-        queryFn: async () => {
-            const res = await fetch(`${API}/api/v1/products/${slug}`, {
-                credentials: "include",
-            });
-
-            const data: ProductResponse = await res.json();
-
-            if (!res.ok) {
-                throw new Error(data.message);
-            }
-
-            return data;
-        },
+        queryFn: () => getProductBySlug(slug),
         enabled: !!slug,
         staleTime: 1000 * 60 * 5,
         retry: false,
@@ -162,21 +135,8 @@ export const useCreateReview = (productId: string) => {
     const queryClient = useQueryClient();
 
     const mutation = useMutation({
-        mutationFn: async (payload: ReviewPayload) => {
-            const res = await fetch(`${API}/api/v1/products/${productId}/reviews`, {
-                method: "POST",
-                // headers: authHeaders(),
-                body: JSON.stringify(payload),
-                credentials: "include",
-            });
-            const data = await res.json();
-            if (!res.ok) throw new Error(data.message);
-            return data;
-        },
-        onSuccess: () => {
-            // بعد از ثبت نظر، cache محصول رو invalidate می‌کنه
-            queryClient.invalidateQueries({ queryKey: ["products"] });
-        },
+        mutationFn: async (payload: ReviewPayload) => getReviewsFromProductId(productId, payload)
+
     });
 
     return {
@@ -197,17 +157,7 @@ export const useCreateProduct = () => {
     const queryClient = useQueryClient();
 
     const mutation = useMutation({
-        mutationFn: async (payload: CreateProductPayload) => {
-            const res = await fetch(`${API}/api/v1/admin/products`, {
-                method: "POST",
-                // headers: authHeaders(),
-                body: JSON.stringify(payload),
-                credentials: "include",
-            });
-            const data = await res.json();
-            if (!res.ok) throw new Error(data.message);
-            return data;
-        },
+        mutationFn: async (payload: CreateProductPayload) => postProducts(payload),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ["products"] });
         },
@@ -229,17 +179,7 @@ export const useUpdateProduct = (productId: string) => {
     const queryClient = useQueryClient();
 
     const mutation = useMutation({
-        mutationFn: async (payload: Partial<CreateProductPayload>) => {
-            const res = await fetch(`${API}/api/v1/admin/products/${productId}`, {
-                method: "PUT",
-                // headers: authHeaders(),
-                body: JSON.stringify(payload),
-                credentials: "include",
-            });
-            const data = await res.json();
-            if (!res.ok) throw new Error(data.message);
-            return data;
-        },
+        mutationFn: async (payload: Partial<CreateProductPayload>) => putProduct(productId, payload),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ["products"] });
         },
@@ -261,16 +201,7 @@ export const useDeleteProduct = () => {
     const queryClient = useQueryClient();
 
     const mutation = useMutation({
-        mutationFn: async (productId: string) => {
-            const res = await fetch(`${API}/api/v1/admin/products/${productId}`, {
-                method: "DELETE",
-                // headers: authHeaders(),
-                credentials: "include",
-            });
-            const data = await res.json();
-            if (!res.ok) throw new Error(data.message);
-            return data;
-        },
+        mutationFn: async (productId: string) => deleteProductById(productId),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ["products"] });
         },
@@ -292,19 +223,7 @@ export const useDeleteReview = (productId: string) => {
     const queryClient = useQueryClient();
 
     const mutation = useMutation({
-        mutationFn: async (reviewId: string) => {
-            const res = await fetch(
-                `${API}/api/v1/admin/products/${productId}/reviews/${reviewId}`,
-                {
-                    method: "DELETE",
-                    // headers: authHeaders(),
-                    credentials: "include",
-                }
-            );
-            const data = await res.json();
-            if (!res.ok) throw new Error(data.message);
-            return data;
-        },
+        mutationFn: async (reviewId: string) => deleteReviewById(productId, reviewId),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ["products", productId] });
         },
