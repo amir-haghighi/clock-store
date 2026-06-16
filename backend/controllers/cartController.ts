@@ -147,10 +147,17 @@ export const updateCartItem = async (req: Request, res: ResType) => {
 
 // DELETE /api/cart/items/:productId
 export const removeCartItem = async (req: Request, res: ResType) => {
+    console.log("delete")
     const userId = req.user._id;
     const { productId } = req.params;
     const { selectedColor } = req.body;
-
+    if (!selectedColor?.name) {
+        res.status(404).json({
+            status: "fail",
+            message: "please check the body for this pattern :  selectedColor.name",
+        })
+    }
+    console.log({ selectedColor });
     const cart = await Cart.findOne({ userId });
     if (!cart) {
         return res.status(404).json({ status: "fail", message: "Cart not found" });

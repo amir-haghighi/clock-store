@@ -94,10 +94,7 @@ export default function ProductPage() {
 
     // ── handlers ─────────────────────────────────────────────────────────────
     const addToCartHandler = () => {
-        console.log({ addToCartHandler })
         if (selectedVariant) {
-            console.log({ selectedVariant })
-            console.log(quantity)
             addItem({
                 productId: product._id,
                 quantity,

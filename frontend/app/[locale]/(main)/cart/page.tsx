@@ -50,7 +50,6 @@ export default function CartPage() {
 
 
 
-
     const shipping = subtotal >= 500 ? 0 : 15;
     const total = subtotal + shipping;
 
@@ -132,7 +131,6 @@ export default function CartPage() {
                     <div className="flex flex-col gap-3">
                         {cartItems?.map((item) => {
 
-                            console.log({ itemmmmmmm: item })
 
                             const selectedVariant = item
 
@@ -228,7 +226,6 @@ export default function CartPage() {
                                             <button
                                                 onClick={() => {
                                                     increaseItem({ ...item })
-                                                    console.log("hi")
                                                 }}
                                                 disabled={item.quantity >= item.stock}
                                                 className="h-7 w-7 flex items-center justify-center text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors disabled:opacity-30 text-base leading-none cursor-pointer"

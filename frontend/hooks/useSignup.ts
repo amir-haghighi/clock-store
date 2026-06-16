@@ -1,5 +1,6 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { API, User } from "./types";
+import api from "@/lib/api";
 
 type SignupInput = {
     name: string;
@@ -8,20 +9,8 @@ type SignupInput = {
 };
 
 const signupUser = async (data: SignupInput): Promise<any> => {
-    const res = await fetch(`${API}/api/v1/auth/signup`, {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-        },
-        credentials: "include",
-        body: JSON.stringify(data),
-    });
-
-    if (!res.ok) {
-        throw await res.json();
-    }
-
-    return res.json();
+    const { data: resData } = await api.post(`${API}/api/v1/auth/signup`, data)
+    return resData
 };
 
 export function useSignup() {

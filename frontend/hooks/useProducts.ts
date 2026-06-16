@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { API } from "./types";
 import { ProductType } from "@/types/product";
-import { deleteProductById, deleteReviewById, getProductBySlug, getProductByUrl, getReviewsFromProductId, postProducts, putProduct } from "@/services/productService";
+import { deleteProductById, deleteReviewById, getProductBySlug, getProductByUrl, getReviewsFromProductId, postProducts, putProduct } from "@/services/productServices";
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 export interface ProductFilters {

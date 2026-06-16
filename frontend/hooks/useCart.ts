@@ -4,9 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { CartItemType, useCartStore } from "@/store/useCartStore";
 import { useUser } from "@/hooks/useUser";
 import { useEffect, useRef } from "react";
-import api from "@/lib/api";
-
-const API = process.env.NEXT_PUBLIC_API_URL ?? "";
+import { fetchServerCart, apiAddItem, apiRemoveItem, apiUpdateItem, fetchCartDetails, pushCartMerge } from "@/services/cartServices";
 
 // ───────────────────────────────────────────
 // Types
@@ -31,52 +29,6 @@ export type DetailedCartItemType = {
 export type CartType = DetailedCartItemType[];
 
 // ───────────────────────────────────────────
-// API helpers
-// ───────────────────────────────────────────
-
-const fetchServerCart = async (): Promise<DetailedCartItemType[]> => {
-    const res = await api.get("/cart")
-    let { data } = await api.get('/cart');
-    return data?.data?.items ?? [];
-};
-
-const fetchCartDetails = async (
-    items: Partial<CartItemType>[]
-): Promise<DetailedCartItemType[]> => {
-    if (!items.length) return [];
-    const { data } = await api.post("cart/getDetails", { items })
-    return data?.data ?? [];
-};
-
-const pushCartMerge = async (
-    items: CartItemType[]
-): Promise<DetailedCartItemType[]> => {
-    const { data } = await api.post("/cart/merge", { items });
-    return data?.data?.items ?? [];
-};
-
-const apiAddItem = async (item: CartItemType): Promise<DetailedCartItemType[]> => {
-
-    const { data } = await api.post("/cart/items", item)
-    return data?.data?.items ?? [];
-};
-
-const apiUpdateItem = async (
-    productId: string,
-    quantity: number,
-    selectedColor: { name: string; hex: string }
-): Promise<void> => {
-    await api.patch(`/cart/items/${productId}`, { quantity, selectedColor })
-};
-
-const apiRemoveItem = async (
-    productId: string,
-    selectedColor: { name: string; hex: string }
-): Promise<void> => {
-    api.delete(`/cart/items/${productId}`, { data: selectedColor })
-};
-
-// ───────────────────────────────────────────
 // hook
 // ───────────────────────────────────────────
 
@@ -87,6 +39,7 @@ export const useCart = () => {
         decreaseItem: decreaseItemOffline,
         increaseItem: increaseItemOffline,
         addItem: addItemOffline,
+        setCart: setOfflineItems,
         clearCart: clearOfflineItems
     } = useCartStore();
 
@@ -104,7 +57,7 @@ export const useCart = () => {
         queryKey: ["cart"],
         queryFn: fetchServerCart,
         enabled: isAuthenticated,
-        staleTime: 60_000,
+        staleTime: 0,
     });
 
     // ───────────────────────────────────────
@@ -114,17 +67,20 @@ export const useCart = () => {
     // ───────────────────────────────────────
 
     const cartKey = offlineCartItems
-        .map((i) => `${i.productId}-${i.selectedColor.name}`)
+        .map(i => `${i.productId}-${i.selectedColor.name}-${i.quantity}`)
         .sort()
         .join("|");
-
     const detailsQuery = useQuery({
         queryKey: ["cart-details", cartKey],
-        queryFn: () => fetchCartDetails(offlineCartItems),
+        queryFn: () => fetchCartDetails(
+            offlineCartItems.map(i => ({
+                productId: i.productId,
+                selectedColor: i.selectedColor,
+            }))
+        ),
         enabled: !isAuthenticated && offlineCartItems.length > 0,
-        placeholderData: (prev) => prev,
+        staleTime: 0,
     });
-
     // ───────────────────────────────────────
     // merge mutation (used on login)
     // ───────────────────────────────────────
@@ -237,6 +193,7 @@ export const useCart = () => {
                 (current?.quantity ?? 0) + 1,
                 item.selectedColor
             );
+
             queryClient.invalidateQueries({ queryKey: ["cart"] });
         } catch (err) {
             console.error("increaseItem failed:", err);
@@ -301,6 +258,7 @@ export const useCart = () => {
         }
 
         try {
+
             await apiRemoveItem(item.productId, item.selectedColor);
             queryClient.invalidateQueries({ queryKey: ["cart"] });
         } catch (err) {
@@ -314,8 +272,18 @@ export const useCart = () => {
 
     const items: DetailedCartItemType[] = isAuthenticated
         ? cartQuery.data ?? []
-        : detailsQuery.data ?? [];
+        : detailsQuery.data?.map((item) => {
+            const localItem = offlineCartItems.find(
+                (i) =>
+                    i.productId === item.productId &&
+                    i.selectedColor.name === item.selectedColor.name
+            );
 
+            return {
+                ...item,
+                quantity: localItem?.quantity ?? item.quantity ?? 1,
+            };
+        }) ?? [];
     const isLoading = isAuthenticated
         ? cartQuery.isPending
         : detailsQuery.isPending && offlineCartItems.length > 0;
