@@ -22,7 +22,7 @@ export const changePasswordForgotten = async (req: any, res: ResType) => {
             }))
         }
 
-        const decoded = await jwt.verify(passwordResetToken, process.env.JWT_SECRET!);
+        const decoded = await jwt.verify(passwordResetToken, process.env.ACCESS_SECRET!);
         const user = await User.findOne({ _id: decoded.id })
         if (user.passwordResetToken !== passwordResetToken) {
             return (res.status(403).json({
@@ -75,7 +75,7 @@ export const forgotPassword = async (req: any, res: ResType) => {
         }
 
         const id = user._id;
-        const newPasswordResetToken = jwt.sign({ id, type: "password-reset" }, process.env.JWT_SECRET!, { expiresIn: "5m" })
+        const newPasswordResetToken = jwt.sign({ id, type: "password-reset" }, process.env.ACCESS_SECRET!, { expiresIn: "5m" })
 
         const newPasswordResetTokenExpiresAt = new Date(Date.now() + expiresInMins * 60 * 1000)
 
@@ -133,7 +133,7 @@ export const signup = async (req: Request, res: ResType) => {
             {
                 id: user._id,
             },
-            process.env.JWT_SECRET!,
+            process.env.ACCESS_SECRET!,
             {
                 expiresIn: "1h",
             }
@@ -164,7 +164,7 @@ export const signup = async (req: Request, res: ResType) => {
             secure: process.env.NODE_ENV === "production",
             sameSite: "lax",
             path: "/",
-            maxAge: 1000 * 60 * 60 * 24 * 7 // 7 days
+            maxAge: parseInt(process.env.REFRESH_TOKEN_EXPIRY_MS!)
         });
 
         res.cookie("accessToken", accessToken, {
@@ -172,7 +172,7 @@ export const signup = async (req: Request, res: ResType) => {
             secure: process.env.NODE_ENV === "production",
             sameSite: "lax",
             path: "/",
-            maxAge: 1000 * 60 * 15 // 15 minutes
+            maxAge: parseInt(process.env.ACCESS_TOKEN_EXPIRY_MS!)
         });
 
         // safe ResType
@@ -221,7 +221,7 @@ export const login = async (req: Request, res: ResType) => {
         }
         const accessToken = jwt.sign(
             { id: user._id },
-            process.env.JWT_SECRET!,
+            process.env.ACCESS_SECRET!,
             { expiresIn: "1h" }
         );
         const refreshToken = jwt.sign(
@@ -241,7 +241,7 @@ export const login = async (req: Request, res: ResType) => {
             secure: process.env.NODE_ENV === "production",
             sameSite: "lax",
             path: "/",
-            maxAge: 1000 * 60 * 60 * 24 * 7 // 7 days
+            maxAge: parseInt(process.env.REFRESH_TOKEN_EXPIRY_MS!)
         });
 
         res.cookie("accessToken", accessToken, {
@@ -249,7 +249,7 @@ export const login = async (req: Request, res: ResType) => {
             secure: process.env.NODE_ENV === "production",
             sameSite: "lax",
             path: "/",
-            maxAge: 1000 * 60 * 15 // 15 minutes
+            maxAge: parseInt(process.env.ACCESS_TOKEN_EXPIRY_MS!)
         });
         const safeUser = {
             id: user._id,

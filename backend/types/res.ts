@@ -4,6 +4,7 @@ import type { Response } from "express"
 type ApiResponse<T = unknown> = {
     message: string
     status: "fail" | "success"
+    code?: string,
     data?: T
     pagination?: {
         page: number,

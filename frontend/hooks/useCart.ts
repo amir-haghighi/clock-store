@@ -57,7 +57,8 @@ export const useCart = () => {
         queryKey: ["cart"],
         queryFn: fetchServerCart,
         enabled: isAuthenticated,
-        staleTime: 0,
+        staleTime: 1000 * 30,  // 30s or more 
+        refetchOnMount: false
     });
 
     // ───────────────────────────────────────
@@ -67,7 +68,7 @@ export const useCart = () => {
     // ───────────────────────────────────────
 
     const cartKey = offlineCartItems
-        .map(i => `${i.productId}-${i.selectedColor.name}-${i.quantity}`)
+        .map(i => `${i.productId}-${i.selectedColor.name}`)
         .sort()
         .join("|");
     const detailsQuery = useQuery({
@@ -79,7 +80,7 @@ export const useCart = () => {
             }))
         ),
         enabled: !isAuthenticated && offlineCartItems.length > 0,
-        staleTime: 0,
+        staleTime: 10000,
     });
     // ───────────────────────────────────────
     // merge mutation (used on login)
@@ -193,7 +194,6 @@ export const useCart = () => {
                 (current?.quantity ?? 0) + 1,
                 item.selectedColor
             );
-
             queryClient.invalidateQueries({ queryKey: ["cart"] });
         } catch (err) {
             console.error("increaseItem failed:", err);

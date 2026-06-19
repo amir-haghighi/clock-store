@@ -2,11 +2,10 @@ import jwt from "jsonwebtoken";
 import { User } from "../models/userModel.js";
 import { RefreshToken } from "../models/refreshTokenModel.js";
 import type { ResType } from "../types/res.js";
-import type { StringValue } from "ms";
-const ACCESS_TOKEN_EXPIRY_MS = parseInt(process.env.ACCESS_TOKEN_EXPIRY_MS!);
-const REFRESH_TOKEN_EXPIRY_MS = parseInt(process.env.REFRESH_TOKEN_EXPIRY_MS!);
+
 
 export const refreshAccessToken = async (req: any, res: ResType) => {
+
     try {
         const refreshToken = req.cookies.refreshToken;
 
@@ -86,14 +85,14 @@ export const refreshAccessToken = async (req: any, res: ResType) => {
         // ── ساخت token های جدید ──────────────────────────────────────
         const newAccessToken = jwt.sign(
             { id: user._id },
-            process.env.JWT_SECRET!,
-            { expiresIn: process.env.ACCESS_TOKEN_EXPIRY! as StringValue }
+            process.env.ACCESS_SECRET!,
+            { expiresIn: parseInt(process.env.REFRESH_TOKEN_EXPIRY_MS!) }
         );
 
         const newRefreshToken = jwt.sign(
             { id: user._id },
             process.env.REFRESH_SECRET!,
-            { expiresIn: process.env.REFRESH_TOKEN_EXPIRY! as StringValue }
+            { expiresIn: parseInt(process.env.REFRESH_TOKEN_EXPIRY_MS!) }
         );
 
         // ── Rotation: قدیمی رو حذف، جدید رو ذخیره ───────────────────
@@ -101,7 +100,7 @@ export const refreshAccessToken = async (req: any, res: ResType) => {
         await RefreshToken.create({
             userId: user._id,
             token: newRefreshToken,
-            expiresAt: new Date(Date.now() + REFRESH_TOKEN_EXPIRY_MS),
+            expiresAt: new Date(Date.now() + parseInt(process.env.REFRESH_TOKEN_EXPIRY_MS!)),
         });
 
         // ── Set cookies ───────────────────────────────────────────────
@@ -111,15 +110,14 @@ export const refreshAccessToken = async (req: any, res: ResType) => {
             sameSite: "lax" as const,
             path: "/",
         };
-
         res.cookie("accessToken", newAccessToken, {
             ...cookieBase,
-            maxAge: ACCESS_TOKEN_EXPIRY_MS,
+            maxAge: parseInt(process.env.ACCESS_TOKEN_EXPIRY_MS!)
         });
 
         res.cookie("refreshToken", newRefreshToken, {
             ...cookieBase,
-            maxAge: REFRESH_TOKEN_EXPIRY_MS,
+            maxAge: parseInt(process.env.REFRESH_TOKEN_EXPIRY_MS!)
         });
 
         return res.status(200).json({
@@ -130,7 +128,7 @@ export const refreshAccessToken = async (req: any, res: ResType) => {
     } catch (error) {
         return res.status(500).json({
             status: "fail",
-            message: "Failed to refresh access token",
+            message: error?.message ?? error,
         });
     }
 };

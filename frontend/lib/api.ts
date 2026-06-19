@@ -16,26 +16,23 @@ const processQueue = (error: AxiosError | null) => {
 };
 api.interceptors.response.use(
     (res) => {
-        console.log("reeeeeeeeeeeeeees", res);
+
         return res
     },
     async (error: AxiosError) => {
-        console.log("erorr", error)
         const original = error.config as InternalAxiosRequestConfig & {
             _retry?: boolean;
         };
-        console.log({ original })
 
-        if (error.response?.status !== 401 || original._retry) {
-            return Promise.reject(error);
+        if (error.response?.status !== 401 || original._retry || error.response?.data?.code !== "TOKEN_EXPIRED") {
+            const reject = Promise.reject(error);
+            return reject
         }
-
         if (isRefreshing) {
-            return new Promise((resolve, reject) => {
-                failedQueue.push({ resolve, reject });
-            }).then(() => api(original));
+            const { promise, resolve, reject } = Promise.withResolvers();
+            failedQueue.push({ resolve, reject });
+            return promise.then(() => api(original));
         }
-
         original._retry = true;
         isRefreshing = true;
 
@@ -45,6 +42,7 @@ api.interceptors.response.use(
             return api(original);
         } catch (refreshError) {
             processQueue(refreshError as AxiosError);
+            window.dispatchEvent(new Event("auth:logout"));
             return Promise.reject(refreshError);
         } finally {
             isRefreshing = false;

@@ -22,6 +22,7 @@ import toast from "react-hot-toast";
 import { useTranslations } from "next-intl";
 import { useProducts } from "@/hooks/useProducts";
 import Loading from "../loading";
+import api from "@/lib/api";
 
 const PROMO_CODES: Record<string, number> = {
     WATCH10: 10,
@@ -30,7 +31,8 @@ const PROMO_CODES: Record<string, number> = {
 
 export default function CartPage() {
     const t = useTranslations("cart");
-    const { addItem, items: cartItems, offlineCartItems, removeItem, increaseItem, decreaseItem, isLoading } = useCart();
+    const { items: cartItems, removeItem, increaseItem, decreaseItem, isLoading } = useCart();
+
     // const product =  products.find( (item)=> item.id )
     const { isAuthenticated } = useUser();
     const router = useRouter();

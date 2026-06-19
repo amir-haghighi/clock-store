@@ -29,7 +29,7 @@ export const getMe = async (req: any, res: ResType) => {
             status: "success"
         })
     } catch (error) {
-        res.status(200).json({
+        res.status(500).json({
 
             message: error?.message ?? error,
             status: "fail"
