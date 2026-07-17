@@ -24,9 +24,9 @@ import { cn } from "@/lib/utils";
 import { CartItem } from "../cart/page";
 import { Field, FieldError, FieldLabel } from "@/components/ui/field";
 import { useUser } from "@/hooks/useUser";
-import Modal from "@/components/modal/modal";
+import Modal from "@/components/layout/modal";
 import { useRouter } from '@/i18n/navigation';
-import LoginSignup from "@/components/loginSignup/LoginSignup";
+import LoginSignup from "@/components/auth/LoginSignup";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 

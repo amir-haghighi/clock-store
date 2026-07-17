@@ -8,7 +8,7 @@ import * as z from "zod"
 import { Field, FieldError, FieldGroup, FieldLabel } from '@/components/ui/field'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Input } from '@/components/ui/input'
-import { formSchema } from '@/components/signup/FormSchema'
+import { formSchema } from '@/components/auth/FormSchema'
 import { PasswordInput } from '@/components/ui/password-input'
 
 import { useRouter } from 'next/navigation'

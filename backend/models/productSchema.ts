@@ -19,11 +19,17 @@ export interface IVariant {
 }
 
 export interface IProduct extends Document {
-    title: string;
+    title: {
+        en: string;
+        fa: string;
+    },
+    description: {
+        en: string;
+        fa: string;
+    },
     slug: string;
     brand: string;
     watchModel: string;
-    description: string;
     images: string[];
     updateRating(): void;
     variants: IVariant[];
@@ -105,10 +111,15 @@ const variantSchema = new Schema<IVariant>(
 const productSchema = new Schema<IProduct>(
     {
         title: {
-            type: String,
-            required: true,
-            trim: true,
+            en: { type: String, required: true, trim: true },
+            fa: { type: String, required: true, trim: true },
         },
+
+        description: {
+            en: { type: String, required: true },
+            fa: { type: String, required: true },
+        },
+
         slug: {
             type: String,
             required: true,
@@ -126,10 +137,7 @@ const productSchema = new Schema<IProduct>(
             required: true,
             trim: true,
         },
-        description: {
-            type: String,
-            required: true,
-        },
+
         images: {
             type: [String],
             required: true,

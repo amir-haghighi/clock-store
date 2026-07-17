@@ -1,11 +1,11 @@
 
 import toast from 'react-hot-toast';
 import { Button } from '../ui/button'
-import { useUser } from '@/hooks/useUser';
 import { useLogout } from '@/hooks/useLogout';
 import { LogOutIcon } from 'lucide-react';
-
+import { useTranslations } from "next-intl";
 export function Logout() {
+    const t = useTranslations("auth")
     const { mutate: logout } = useLogout()
     const onLogoutHandle = async () => {
         logout(undefined, {
@@ -20,7 +20,7 @@ export function Logout() {
     }
     return (
         <Button onClick={onLogoutHandle} className='bg-muted text-foreground'>
-            <span>خروج</span>
+            <span>{t("logout")}</span>
             <LogOutIcon />
         </Button>
     )

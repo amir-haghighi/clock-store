@@ -12,6 +12,7 @@ const fa = {
             "رمز عبور باید حداقل ۸ کاراکتر بوده و حداقل یک حرف بزرگ داشته باشد",
         noAccount: "اکانت ندارید؟",
         loginDescription: "به اکانت خود وارد شوید",
+        logout: "خروج",
         alreadyHaveAccount: "قبلاً ثبت نام کرده‌اید؟"
     },
     nav: {
@@ -84,11 +85,59 @@ const fa = {
         checkout: "ادامه و پرداخت",
         continueShopping: "← ادامه خرید",
     },
+    checkout: {
 
+        "securePayment": "پرداخت امن با رمزنگاری SSL",
+        "backToStore": "بازگشت به فروشگاه",
+        "finalPayment": "پرداخت نهایی",
+        "completeOrder": "تکمیل سفارش",
+
+        "shippingInfo": "اطلاعات ارسال",
+        "name": "نام",
+        "phone": "شماره موبایل",
+        "city": "شهر",
+        "province": "استان",
+        "address": "آدرس کامل",
+        "postalCode": "کد پستی",
+
+        "deliveryMethod": "روش ارسال",
+        "express": "ارسال اکسپرس (۱–۲ روز کاری)",
+        "normal": "ارسال عادی (۳–۵ روز کاری)",
+        "free": "رایگان",
+
+        "paymentMethod": "روش پرداخت",
+        "shaparak": "درگاه پرداخت شاپرک",
+        "onlinePayment": "پرداخت آنلاین امن",
+
+        "orderSummary": "خلاصه سفارش",
+        "discountCode": "کد تخفیف",
+        "apply": "اعمال",
+        "applied": "✓ اعمال شد",
+        "invalidDiscount": "کد تخفیف معتبر نیست",
+        "discountSuccess": "کد تخفیف اعمال شد! ۱۰٪ تخفیف",
+
+        "productsTotal": "جمع کالاها",
+        "discount": "تخفیف (۱۰٪)",
+        "deliveryCost": "هزینه ارسال",
+        "total": "مبلغ قابل پرداخت",
+
+        "redirecting": "در حال انتقال...",
+        "pay": "پرداخت از طریق شاپرک",
+        "toman": "تومان",
+        "loadingToPayment": "در حال انتقال",
+
+        "secure": "پرداخت امن",
+        "support": "پشتیبانی ۲۴/۷"
+
+    },
     validation: {
         fullNameMin: "نام باید حداقل ۳ کاراکتر باشد",
         fullNameMax: "نام نباید بیشتر از ۶۰ کاراکتر باشد",
         invalidEmail: "ایمیل معتبر وارد کنید",
+        addressMin: "آدرس باید حداقل ۱۰ کاراکتر باشد",
+        postalCodeMin: "کد پستی باید حداقل ۱۰ کاراکتر باشد",
+
+        required: "الزامی است",
         invalidPhone: "شماره موبایل معتبر وارد کنید",
         subjectRequired: "موضوع را انتخاب کنید",
         messageMin: "پیام باید حداقل ۲۰ کاراکتر باشد",

@@ -3,7 +3,7 @@ import { useUser } from '@/hooks/useUser';
 import React from 'react'
 import { Button } from '../ui/button';
 import { Link } from '@/i18n/navigation';
-import Logout from '../logging/logout';
+import Logout from '../auth/logout';
 import { ShoppingCartIcon, WatchIcon } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 import { useTranslations } from 'next-intl';

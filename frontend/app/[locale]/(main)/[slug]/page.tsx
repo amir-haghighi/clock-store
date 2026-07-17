@@ -427,8 +427,8 @@ export default function ProductPage() {
                         </TabsList>
 
                         <TabsContent value="description" className="mt-0">
-                            <div className="max-w-3xl">
-                                <p className="text-zinc-600 dark:text-zinc-400 leading-relaxed text-base">
+                            <div className="max-w-3xl bg-zinc-50 dark:bg-zinc-900 rounded-xl p-2 mx-auto">
+                                <p className="text-zinc-600 text-center dark:text-zinc-400 leading-relaxed text-base">
                                     {product.description}
                                 </p>
                             </div>
@@ -436,13 +436,15 @@ export default function ProductPage() {
 
                         <TabsContent value="specifications" className="mt-0">
                             {specs.length === 0 ? (
-                                <p className="text-zinc-400 text-sm">{t("noSpecs")}</p>
+                                <p className="text-zinc-400 text-sm ">{t("noSpecs")}</p>
                             ) : (
-                                <div className="max-w-2xl divide-y divide-zinc-100 dark:divide-zinc-800 border border-zinc-100 dark:border-zinc-800 rounded-xl overflow-hidden">
+                                <div className="max-w-2xl divide-y mx-auto 
+                                bg-zinc-50
+                                 divide-zinc-100 dark:divide-zinc-800 border border-zinc-100 dark:border-zinc-800 rounded-xl overflow-hidden">
                                     {specs.map(([key, value]) => (
                                         <div
                                             key={key}
-                                            className="flex items-center px-5 py-3.5 bg-white dark:bg-zinc-900 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors"
+                                            className="flex items-center px-5 py-3.5 dark:bg-zinc-900 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors"
                                         >
                                             <span className="w-40 shrink-0 text-sm font-medium text-zinc-500 dark:text-zinc-400">
                                                 {key}

@@ -2,6 +2,7 @@ import { MessagesType } from "./type";
 
 const en: MessagesType = {
     auth: {
+
         name: "Name",
         email: "Email",
         login: "Login",
@@ -13,6 +14,7 @@ const en: MessagesType = {
             "Password must be at least 8 characters and contain one uppercase letter",
         noAccount: "Don't have an account?",
         loginDescription: "Login to your account",
+        logout: "logout",
         alreadyHaveAccount: "Already have an account?"
     },
     nav: {
@@ -86,14 +88,61 @@ const en: MessagesType = {
         checkout: "Proceed to Checkout",
         continueShopping: "← Continue Shopping",
     },
+    checkout: {
+
+        "securePayment": "Secure payment with SSL encryption",
+        "backToStore": "Back to store",
+        "finalPayment": "Final payment",
+        "completeOrder": "Complete order",
+
+        "shippingInfo": "Shipping information",
+        "name": "Name",
+        "phone": "Phone number",
+        "city": "City",
+        "province": "Province",
+        "address": "Full address",
+        "postalCode": "Postal code",
+
+        "deliveryMethod": "Delivery method",
+        "express": "Express delivery (1–2 business days)",
+        "normal": "Normal delivery (3–5 business days)",
+        "free": "Free",
+
+        "paymentMethod": "Payment method",
+        "shaparak": "Shaparak payment gateway",
+        "onlinePayment": "Secure online payment",
+
+        "orderSummary": "Order summary",
+        "discountCode": "Discount code",
+        "apply": "Apply",
+        "applied": "✓ Applied",
+        "invalidDiscount": "Invalid discount code",
+        "discountSuccess": "Discount applied! 10% off",
+
+        "productsTotal": "Products total",
+        "discount": "Discount (10%)",
+        "deliveryCost": "Delivery cost",
+        "total": "Total amount",
+
+        "redirecting": "Redirecting...",
+        "pay": "Pay via Shaparak",
+        "toman": "Toman",
+        "loadingToPayment": "loading to payment",
+        "secure": "Secure payment",
+        "support": "24/7 Support"
+    },
     validation: {
         fullNameMin: "Name must be at least 3 characters",
         fullNameMax: "Name cannot exceed 60 characters",
         invalidEmail: "Please enter a valid email address",
+        addressMin: "Address must be at least 10 character",
+        postalCodeMin: "Postal code must be at least 10 character",
         invalidPhone: "Please enter a valid mobile number",
+        required: "required",
         subjectRequired: "Please select a subject",
         messageMin: "Message must be at least 20 characters",
         messageMax: "Message cannot exceed 1000 characters"
+
     },
 
     contact: {

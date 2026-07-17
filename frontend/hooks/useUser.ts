@@ -24,7 +24,7 @@ export function useUser() {
         queryKey: ["me"],
         queryFn: fetchMe,
         retry: false,
-        staleTime: 1000 * 30, // 30s
+        staleTime: 1000 * 10, // 10s
     });
 
 

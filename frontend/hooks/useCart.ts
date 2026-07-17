@@ -22,7 +22,7 @@ export type DetailedCartItemType = {
     brand: string;
     image: string;
     price: number;
-    discountPrice: number | null;
+    discountPrice?: number;
     stock: number;
 };
 
