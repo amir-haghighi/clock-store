@@ -126,7 +126,7 @@ const en: MessagesType = {
 
         "redirecting": "Redirecting...",
         "pay": "Pay via Shaparak",
-        "toman": "Toman",
+        "dollar": "USD",
         "loadingToPayment": "loading to payment",
         "secure": "Secure payment",
         "support": "24/7 Support"

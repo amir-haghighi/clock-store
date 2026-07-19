@@ -123,7 +123,7 @@ const fa = {
 
         "redirecting": "در حال انتقال...",
         "pay": "پرداخت از طریق شاپرک",
-        "toman": "تومان",
+        "dollar": "دلار",
         "loadingToPayment": "در حال انتقال",
 
         "secure": "پرداخت امن",

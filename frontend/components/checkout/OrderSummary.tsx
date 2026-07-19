@@ -1,29 +1,14 @@
 "use client";
-
-import { Controller, useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import * as z from "zod";
 import {
-    ShoppingBag, Truck, Tag, CreditCard, ChevronLeft,
-    Clock, Shield, Lock, CheckCircle2, Package
+    ShoppingBag,
+    Clock, Shield, Lock
 } from "lucide-react";
-import { useState, useTransition } from "react";
-
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-    Select, SelectContent, SelectItem,
-    SelectTrigger, SelectValue,
-} from "@/components/ui/select";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Label } from "@/components/ui/label";
-import { Field, FieldError, FieldLabel } from "@/components/ui/field";
-import { toast } from "react-hot-toast";
 import { useTranslations } from "next-intl";
-import { DetailedCartItemType, useCart } from "@/hooks/useCart";
+import { DetailedCartItemType } from "@/hooks/useCart";
 import { API } from "@/hooks/types";
 
 type PropsType = {
@@ -32,8 +17,9 @@ type PropsType = {
     deliveryCost: number,
     total: number,
     subTotal: number,
-    formatPrice: any,
+    formatPrice: (n: number) => string
 }
+
 const OrderSummary = ({ cartItems, isSubmitting, formatPrice, deliveryCost, total, subTotal }: PropsType) => {
     const t = useTranslations("checkout");
     return (
@@ -57,7 +43,7 @@ const OrderSummary = ({ cartItems, isSubmitting, formatPrice, deliveryCost, tota
                                     <img
                                         src={!!item.image ? `${API}${item.image}` : undefined}
                                         alt={item.slug}
-                                        className="w-full h-full object-cover"
+                                        className="w-full h-full object-contain"
                                     />
                                 </div>
                                 <div className="flex-1 text-center min-w-0 " >

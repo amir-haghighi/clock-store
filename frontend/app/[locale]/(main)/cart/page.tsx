@@ -107,7 +107,7 @@ export default function CartPage() {
 
     // ── Main ─────────────────────────────────────────────────────────────────
     return (
-        <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950">
+        <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950 rounded-xl">
             {/* Header */}
             <div className="border-b border-zinc-100 dark:border-zinc-800 bg-white dark:bg-zinc-950 sticky top-0 z-10">
                 <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 h-14 flex items-center gap-3">
