@@ -2,7 +2,6 @@ import bcrypt from "bcryptjs";
 import { Schema, model } from "mongoose";
 import validator from "validator";
 type AddressType = {
-    country: string;
     city: string;
     fullAddress: string;
     postalCode: string;
@@ -19,7 +18,6 @@ export type UserType = {
     passwordResetTokenExpiresAt?: Date
 };
 const addressSchema = new Schema({
-    country: { type: String, required: true },
     city: { type: String, required: true },
     fullAddress: { type: String, required: true },
     postalCode: { type: String, required: true },

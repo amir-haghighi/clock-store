@@ -16,6 +16,7 @@ export interface IVariant {
     price: number;
     discountPrice?: number;
     stock: number;
+    _id: Types.ObjectId;
 }
 
 export interface IProduct extends Document {

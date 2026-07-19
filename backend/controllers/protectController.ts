@@ -9,6 +9,7 @@ export const protect = async (
     next: NextFunction
 ) => {
     try {
+
         // get token from http-only cookie
         const token = req.cookies.accessToken;
         const refreshToken = req.cookies.refreshToken;
@@ -22,6 +23,7 @@ export const protect = async (
             });
         }
         if (!token && refreshToken) {
+            console.log({ token })
             return res.status(401).json({
                 status: "fail",
                 code: "TOKEN_EXPIRED",

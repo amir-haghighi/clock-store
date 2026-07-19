@@ -99,7 +99,7 @@ const fa = {
         "province": "استان",
         "address": "آدرس کامل",
         "postalCode": "کد پستی",
-
+        "email": "ایمیل",
         "deliveryMethod": "روش ارسال",
         "express": "ارسال اکسپرس (۱–۲ روز کاری)",
         "normal": "ارسال عادی (۳–۵ روز کاری)",

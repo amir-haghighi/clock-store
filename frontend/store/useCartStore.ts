@@ -4,6 +4,7 @@ import { persist } from "zustand/middleware";
 export type CartItemType = {
     productId: string;
     quantity: number;
+    variantId: string;
     selectedColor: {
         name: string;
         hex: string;
@@ -17,17 +18,17 @@ export type AddItemArgumentType = CartItemType & {
 type CartStore = {
     cartItems: CartItemType[];
     addItem: (item: AddItemArgumentType) => void;
-    removeItem: (item: Omit<CartItemType, "quantity">) => void;
+    removeItem: (item: Pick<CartItemType, "productId" | "variantId">) => void;
 
     increaseItem: (item: {
         productId: string;
-        selectedColor: { name: string; hex: string };
+        variantId: string;
         stock: number;
     }) => void;
 
     decreaseItem: (item: {
         productId: string;
-        selectedColor: { name: string; hex: string };
+        variantId: string;
     }) => void;
 
     clearCart: () => void;
@@ -44,7 +45,7 @@ export const useCartStore = create<CartStore>()(
                     const index = state.cartItems.findIndex(
                         (i) =>
                             i.productId === item.productId &&
-                            i.selectedColor?.name === item.selectedColor?.name
+                            i.variantId === item.variantId
                     );
 
                     const safeQty = Math.min(item.quantity, item.stock);
@@ -68,6 +69,7 @@ export const useCartStore = create<CartStore>()(
                             ...state.cartItems,
                             {
                                 productId: item.productId,
+                                variantId: item.variantId,
                                 quantity: safeQty,
                                 selectedColor: item.selectedColor,
                             },
@@ -81,7 +83,7 @@ export const useCartStore = create<CartStore>()(
                         (i) =>
                             !(
                                 i.productId === item.productId &&
-                                i.selectedColor?.name === item.selectedColor?.name
+                                i.variantId === item.variantId
                             )
                     ),
                 })),
@@ -91,7 +93,7 @@ export const useCartStore = create<CartStore>()(
                     const index = state.cartItems.findIndex(
                         (i) =>
                             i.productId === item.productId &&
-                            i.selectedColor?.name === item.selectedColor?.name
+                            i.variantId === item.variantId
                     );
 
                     if (index === -1) return state;
@@ -112,7 +114,7 @@ export const useCartStore = create<CartStore>()(
                     const index = state.cartItems.findIndex(
                         (i) =>
                             i.productId === item.productId &&
-                            i.selectedColor?.name === item.selectedColor?.name
+                            i.variantId === item.variantId
                     );
 
                     if (index === -1) return state;
@@ -126,7 +128,7 @@ export const useCartStore = create<CartStore>()(
                                 (i) =>
                                     !(
                                         i.productId === item.productId &&
-                                        i.selectedColor?.name === item.selectedColor?.name
+                                        i.variantId === item.variantId
                                     )
                             ),
                         };

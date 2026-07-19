@@ -20,7 +20,6 @@ type PropsType = {
     }[];
     form: UseFormReturn<{
         fullName: string;
-        phone: string;
         email: string;
         province: string;
         city: string;
@@ -30,7 +29,6 @@ type PropsType = {
         discountCode?: string | undefined;
     }, any, {
         fullName: string;
-        phone: string;
         email: string;
         province: string;
         city: string;
@@ -72,11 +70,11 @@ const CheckoutForm = ({ formatPrice, form, DELIVERY_OPTIONS }: PropsType) => {
                         />
                         <Controller
                             control={form.control}
-                            name="phone"
+                            name="email"
                             render={({ field, fieldState }) => (
                                 <Field>
-                                    <FieldLabel>{t("phone")}*</FieldLabel>
-                                    <Input placeholder="09123456789" type="tel" {...field} />
+                                    <FieldLabel>{t("email")}*</FieldLabel>
+                                    <Input type="email" {...field} />
                                     {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
                                 </Field>
                             )}

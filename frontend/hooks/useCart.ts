@@ -1,37 +1,19 @@
-"use client";
-
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { apiAddItem, apiRemoveItem, apiUpdateItem, fetchCartDetails, fetchServerCart, pushCartMerge } from "@/services/cartServices";
 import { CartItemType, useCartStore } from "@/store/useCartStore";
-import { useUser } from "@/hooks/useUser";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef } from "react";
-import { fetchServerCart, apiAddItem, apiRemoveItem, apiUpdateItem, fetchCartDetails, pushCartMerge } from "@/services/cartServices";
+import { useUser } from "./useUser";
 
-// ───────────────────────────────────────────
-// Types
-// ───────────────────────────────────────────
 
-export type DetailedCartItemType = {
-    productId: string;
-    quantity: number;
-    selectedColor: {
-        name: string;
-        hex: string;
-    };
+export interface DetailedCartItemType extends CartItemType {
     title: string;
     slug: string;
     brand: string;
     image: string;
     price: number;
-    discountPrice?: number;
+    discountPrice: number;
     stock: number;
-};
-
-export type CartType = DetailedCartItemType[];
-
-// ───────────────────────────────────────────
-// hook
-// ───────────────────────────────────────────
-
+}
 export const useCart = () => {
     const {
         cartItems: offlineCartItems,
@@ -63,12 +45,12 @@ export const useCart = () => {
 
     // ───────────────────────────────────────
     // guest cart details (guest only)
-    // quantity intentionally excluded from key — product details don't
-    // change when quantity changes, only when items/colors change
+    // keyed by variantId — the real unique identifier of an item,
+    // not color name (two variants could theoretically share a color)
     // ───────────────────────────────────────
 
     const cartKey = offlineCartItems
-        .map(i => `${i.productId}-${i.selectedColor.name}`)
+        .map(i => `${i.productId}-${i.variantId}`)
         .sort()
         .join("|");
     const detailsQuery = useQuery({
@@ -76,12 +58,13 @@ export const useCart = () => {
         queryFn: () => fetchCartDetails(
             offlineCartItems.map(i => ({
                 productId: i.productId,
-                selectedColor: i.selectedColor,
+                variantId: i.variantId,
             }))
         ),
         enabled: !isAuthenticated && offlineCartItems.length > 0,
         staleTime: 10000,
     });
+
     // ───────────────────────────────────────
     // merge mutation (used on login)
     // ───────────────────────────────────────
@@ -119,6 +102,7 @@ export const useCart = () => {
                 // convert DetailedCartItemType → CartItemType for Zustand
                 const offlineItems: CartItemType[] = serverItems.map((i) => ({
                     productId: i.productId,
+                    variantId: i.variantId,
                     quantity: i.quantity,
                     selectedColor: i.selectedColor,
                     stock: i.stock,
@@ -151,7 +135,7 @@ export const useCart = () => {
             const details = await fetchCartDetails([item]);
             const detailedItem = details.find(
                 (v) => v.productId === item.productId &&
-                    v.selectedColor.name === item.selectedColor.name
+                    v.variantId === item.variantId
             );
             stock = detailedItem?.stock ?? 999;
         } catch {
@@ -160,23 +144,25 @@ export const useCart = () => {
 
         addItemOffline({ ...item, stock });
     };
+
     // ───────────────────────────────────────
     // increaseItem
     // ───────────────────────────────────────
 
     const increaseItem = async (item: {
         productId: string;
+        variantId: string;
         selectedColor: { name: string; hex: string };
     }) => {
         if (!isAuthenticated) {
             const detailedItem = detailsQuery.data?.find(
                 (v) =>
                     v.productId === item.productId &&
-                    v.selectedColor.name === item.selectedColor.name
+                    v.variantId === item.variantId
             );
             increaseItemOffline({
                 productId: item.productId,
-                selectedColor: item.selectedColor,
+                variantId: item.variantId,
                 stock: detailedItem?.stock ?? 0,
             });
             return;
@@ -185,14 +171,14 @@ export const useCart = () => {
         const current = cartQuery.data?.find(
             (i) =>
                 i.productId === item.productId &&
-                i.selectedColor?.name === item.selectedColor.name
+                i.variantId === item.variantId
         );
 
         try {
             await apiUpdateItem(
                 item.productId,
-                (current?.quantity ?? 0) + 1,
-                item.selectedColor
+                item.variantId,
+                (current?.quantity ?? 0) + 1
             );
             queryClient.invalidateQueries({ queryKey: ["cart"] });
         } catch (err) {
@@ -206,17 +192,18 @@ export const useCart = () => {
 
     const decreaseItem = async (item: {
         productId: string;
+        variantId: string;
         selectedColor: { name: string; hex: string };
     }) => {
         if (!isAuthenticated) {
             const current = offlineCartItems.find(
                 i => i.productId === item.productId &&
-                    i.selectedColor.name === item.selectedColor.name
+                    i.variantId === item.variantId
             );
             if ((current?.quantity ?? 1) <= 1) {
-                removeItemOffline({ productId: item.productId, selectedColor: item.selectedColor });
+                removeItemOffline({ productId: item.productId, variantId: item.variantId });
             } else {
-                decreaseItemOffline({ productId: item.productId, selectedColor: item.selectedColor });
+                decreaseItemOffline({ productId: item.productId, variantId: item.variantId });
             }
             return;
         }
@@ -224,16 +211,16 @@ export const useCart = () => {
         const current = cartQuery.data?.find(
             (i) =>
                 i.productId === item.productId &&
-                i.selectedColor?.name === item.selectedColor.name
+                i.variantId === item.variantId
         );
 
         const newQty = (current?.quantity ?? 1) - 1;
 
         try {
             if (newQty <= 0) {
-                await apiRemoveItem(item.productId, item.selectedColor);
+                await apiRemoveItem(item.productId, item.variantId);
             } else {
-                await apiUpdateItem(item.productId, newQty, item.selectedColor);
+                await apiUpdateItem(item.productId, item.variantId, newQty);
             }
             queryClient.invalidateQueries({ queryKey: ["cart"] });
         } catch (err) {
@@ -247,19 +234,19 @@ export const useCart = () => {
 
     const removeItem = async (item: {
         productId: string;
+        variantId: string;
         selectedColor: { name: string; hex: string };
     }) => {
         if (!isAuthenticated) {
             removeItemOffline({
                 productId: item.productId,
-                selectedColor: item.selectedColor,
+                variantId: item.variantId,
             });
             return;
         }
 
         try {
-
-            await apiRemoveItem(item.productId, item.selectedColor);
+            await apiRemoveItem(item.productId, item.variantId);
             queryClient.invalidateQueries({ queryKey: ["cart"] });
         } catch (err) {
             console.error("removeItem failed:", err);
@@ -276,7 +263,7 @@ export const useCart = () => {
             const localItem = offlineCartItems.find(
                 (i) =>
                     i.productId === item.productId &&
-                    i.selectedColor.name === item.selectedColor.name
+                    i.variantId === item.variantId
             );
 
             return {
@@ -284,6 +271,7 @@ export const useCart = () => {
                 quantity: localItem?.quantity ?? item.quantity ?? 1,
             };
         }) ?? [];
+
     const isLoading = isAuthenticated
         ? cartQuery.isPending
         : detailsQuery.isPending && offlineCartItems.length > 0;

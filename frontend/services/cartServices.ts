@@ -2,11 +2,9 @@ import { DetailedCartItemType } from "@/hooks/useCart";
 import api from "@/lib/api";
 import { CartItemType } from "@/store/useCartStore";
 
-const API = process.env.NEXT_PUBLIC_API_URL ?? "";
 
 export const fetchServerCart = async (): Promise<DetailedCartItemType[]> => {
-    const res = await api.get("/cart")
-    let { data } = await api.get('/cart');
+    const { data } = await api.get('/cart');
     return data?.data?.items ?? [];
 };
 
@@ -33,16 +31,15 @@ export const apiAddItem = async (item: CartItemType): Promise<DetailedCartItemTy
 
 export const apiUpdateItem = async (
     productId: string,
-    quantity: number,
-    selectedColor: { name: string; hex: string }
+    variantId: string,
+    quantity: number
 ): Promise<void> => {
-    await api.patch(`/cart/items/${productId}`, { quantity, selectedColor })
+    await api.patch(`/cart/items/${productId}`, { variantId, quantity })
 };
 
 export const apiRemoveItem = async (
     productId: string,
-    selectedColor: { name: string; hex: string }
+    variantId: string
 ): Promise<void> => {
-    await api.delete(`/cart/items/${productId}`, { data: { selectedColor } })
-
+    await api.delete(`/cart/items/${productId}`, { data: { variantId } })
 };

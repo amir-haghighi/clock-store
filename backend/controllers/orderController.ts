@@ -4,6 +4,11 @@ import type { ResType } from "../types/res.js";
 import Product from "../models/productSchema.js";
 import Order from "../models/orderSchema.js";
 
+type requestItemType = {
+    productId: number,
+    variantId: number,
+    quantity: number
+}
 // 1 post /
 export const createOrder = async (req: any, res: any) => {
     try {
@@ -19,31 +24,36 @@ export const createOrder = async (req: any, res: any) => {
 
         const orderItems = [];
 
-        for (const item of items) {
-            const product = await Product.findById(item.productId);
+        for (const item of items as requestItemType[]) {
 
+            const product = await Product.findById(item.productId);
             if (!product) {
                 return res.status(404).json({
                     status: "fail",
                     message: "Product not found",
                 });
             }
-
-            if (product.stock < item.quantity) {
+            const variant = product.variants.find(v => v._id.equals(item.variantId));
+            if (!variant) {
+                return res.status(404).json({
+                    status: "fail",
+                    message: "variant not found",
+                });
+            }
+            if (variant.stock < item.quantity) {
                 return res.status(400).json({
                     status: "fail",
                     message: "Not enough stock",
                 });
             }
-
+            const minPrice = variant.discountPrice ?? variant.price
             orderItems.push({
                 productId: product._id,
                 title: product.title,
                 image: product.images[0],
-                price: product.price,
+                price: minPrice,
                 quantity: item.quantity,
-                selectedColor: item.selectedColor,
-                selectedSize: item.selectedSize,
+                selectedColor: variant.color
             });
         }
 
@@ -53,8 +63,7 @@ export const createOrder = async (req: any, res: any) => {
         );
 
         const shippingPrice = itemsPrice > 100 ? 0 : 10;
-        const taxPrice = itemsPrice * 0.09;
-        const totalPrice = itemsPrice + shippingPrice + taxPrice;
+        const totalPrice = itemsPrice + shippingPrice;
 
         const order = await Order.create({
             userId,
@@ -62,7 +71,6 @@ export const createOrder = async (req: any, res: any) => {
             shippingAddress,
             itemsPrice,
             shippingPrice,
-            taxPrice,
             totalPrice,
             paymentMethod: "shaparak",
             status: "pending",

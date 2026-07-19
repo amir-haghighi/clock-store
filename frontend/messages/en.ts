@@ -102,6 +102,7 @@ const en: MessagesType = {
         "province": "Province",
         "address": "Full address",
         "postalCode": "Postal code",
+        "email": "Email",
 
         "deliveryMethod": "Delivery method",
         "express": "Express delivery (1–2 business days)",

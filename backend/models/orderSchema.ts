@@ -15,7 +15,6 @@ export interface IOrderItem {
 
 export interface IShippingAddress {
     fullName: string;
-    country: string;
     city: string;
     address: string;
     postalCode?: string;
@@ -45,7 +44,6 @@ export interface IOrder extends Document {
 
     itemsPrice: number;
     shippingPrice: number;
-    taxPrice: number;
     totalPrice: number;
 
     isPaid: boolean;
@@ -74,7 +72,6 @@ const orderItemSchema = new Schema<IOrderItem>(
             ref: "Product",
             required: true,
         },
-
         title: {
             type: String,
             required: true,
@@ -103,14 +100,8 @@ const orderItemSchema = new Schema<IOrderItem>(
             trim: true,
         },
 
-        selectedSize: {
-            type: String,
-            trim: true,
-        },
     },
-    {
-        _id: false,
-    }
+
 );
 
 const shippingAddressSchema = new Schema<IShippingAddress>(
@@ -121,11 +112,6 @@ const shippingAddressSchema = new Schema<IShippingAddress>(
             trim: true,
         },
 
-        // country: {
-        //     type: String,
-        //     required: true,
-        //     trim: true,
-        // },
 
         city: {
             type: String,
@@ -221,13 +207,6 @@ const orderSchema = new Schema<IOrder>(
         },
 
         shippingPrice: {
-            type: Number,
-            required: true,
-            min: 0,
-            default: 0,
-        },
-
-        taxPrice: {
             type: Number,
             required: true,
             min: 0,

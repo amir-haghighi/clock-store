@@ -13,22 +13,22 @@ const populateCartItems = async (items: ICartItem[]) => {
         const product = productMap.get(item.productId.toString());
         if (!product) return null;
 
-        const variant = product.variants.find(
-            (v) => v.color.name.toLowerCase() === item.selectedColor?.name.toLocaleLowerCase()
-        );
-
+        const variant = product.variants.id(item.variantId);
+        if (!variant) return null;
+        console.log({ variant })
         return {
             productId: item.productId,
+            variantId: variant._id,
             quantity: item.quantity,
-            selectedColor: item.selectedColor,
+            selectedColor: variant.color,
             // snapshot به‌روز از product:
             title: product.title,
             slug: product.slug,
             brand: product.brand,
             image: product.images[0],
-            price: variant?.price ?? 0,
-            discountPrice: variant?.discountPrice ?? null,
-            stock: variant?.stock ?? 0,
+            price: variant.price ?? 0,
+            discountPrice: variant.discountPrice ?? null,
+            stock: variant.stock ?? 0,
         };
     }).filter(Boolean);
 };
@@ -59,16 +59,14 @@ export const getCart = async (req: Request, res: ResType) => {
 // POST /api/cart/items
 export const addToCart = async (req: Request, res: ResType) => {
     const userId = req.user._id;
-    const { productId, quantity, selectedColor } = req.body;
+    const { productId, variantId, quantity } = req.body;
 
     const product = await Product.findById(productId);
     if (!product) {
         return res.status(404).json({ status: "fail", message: "Product not found" });
     }
 
-    const variant = product.variants.find(
-        (v) => v.color.name === selectedColor?.name
-    );
+    const variant = product.variants.id(variantId);
     if (!variant) {
         return res.status(404).json({ status: "fail", message: "Variant not found" });
     }
@@ -81,7 +79,7 @@ export const addToCart = async (req: Request, res: ResType) => {
     const existingItem = cart.items.find(
         (item) =>
             item.productId.toString() === productId &&
-            item.selectedColor?.name === selectedColor?.name
+            item.variantId?.toString() === variantId
     );
 
     if (existingItem) {
@@ -92,8 +90,8 @@ export const addToCart = async (req: Request, res: ResType) => {
     } else {
         cart.items.push({
             productId: product._id,
+            variantId: variant._id,
             quantity: Math.min(quantity, variant.stock),
-            selectedColor,
         });
     }
 
@@ -112,7 +110,7 @@ export const addToCart = async (req: Request, res: ResType) => {
 export const updateCartItem = async (req: Request, res: ResType) => {
     const userId = req.user._id;
     const { productId } = req.params;
-    const { quantity, selectedColor } = req.body;
+    const { variantId, quantity } = req.body;
 
     const cart = await Cart.findOne({ userId });
     if (!cart) {
@@ -122,16 +120,14 @@ export const updateCartItem = async (req: Request, res: ResType) => {
     const item = cart.items.find(
         (i) =>
             i.productId.toString() === productId &&
-            i.selectedColor?.name === selectedColor?.name
+            i.variantId?.toString() === variantId
     );
     if (!item) {
         return res.status(404).json({ status: "fail", message: "Item not found" });
     }
 
     const product = await Product.findById(productId);
-    const variant = product?.variants.find(
-        (v) => v.color.name === selectedColor?.name
-    );
+    const variant = product?.variants.id(variantId);
 
     item.quantity = Math.min(quantity, variant?.stock ?? quantity);
     await cart.save();
@@ -147,17 +143,17 @@ export const updateCartItem = async (req: Request, res: ResType) => {
 
 // DELETE /api/cart/items/:productId
 export const removeCartItem = async (req: Request, res: ResType) => {
-    console.log("delete")
     const userId = req.user._id;
     const { productId } = req.params;
-    const { selectedColor } = req.body;
-    if (!selectedColor?.name) {
-        res.status(404).json({
+    const { variantId } = req.body;
+
+    if (!variantId) {
+        return res.status(400).json({
             status: "fail",
-            message: "please check the body for this pattern :  selectedColor.name",
-        })
+            message: "please check the body for this pattern: variantId",
+        });
     }
-    console.log({ selectedColor });
+
     const cart = await Cart.findOne({ userId });
     if (!cart) {
         return res.status(404).json({ status: "fail", message: "Cart not found" });
@@ -167,7 +163,7 @@ export const removeCartItem = async (req: Request, res: ResType) => {
         (item) =>
             !(
                 item.productId.toString() === productId &&
-                item.selectedColor?.name === selectedColor?.name
+                item.variantId?.toString() === variantId
             )
     );
 
@@ -202,13 +198,13 @@ export const mergeCart = async (req: Request, res: ResType) => {
             dbCart = new Cart({ userId, items: [] });
         }
 
-        const getKey = (productId: string, colorName?: string) =>
-            `${productId}-${colorName ?? "default"}`;
+        const getKey = (productId: string, variantId?: string) =>
+            `${productId}-${variantId ?? "default"}`;
 
         // map از cart موجود در DB
         const map = new Map<string, ICartItem>();
         for (const item of dbCart.items) {
-            map.set(getKey(item.productId.toString(), item.selectedColor?.name), item);
+            map.set(getKey(item.productId.toString(), item.variantId?.toString()), item);
         }
 
         // fetch همه products یکبار
@@ -220,12 +216,10 @@ export const mergeCart = async (req: Request, res: ResType) => {
             const product = productMap.get(localItem.productId.toString());
             if (!product) continue;
 
-            const variant = product.variants.find(
-                (v) => v.color.name === localItem.selectedColor?.name
-            );
+            const variant = product.variants.id(localItem.variantId);
             if (!variant) continue;
 
-            const key = getKey(localItem.productId.toString(), localItem.selectedColor?.name);
+            const key = getKey(localItem.productId.toString(), localItem.variantId?.toString());
             const existing = map.get(key);
 
             const newQty = Math.min(
@@ -240,38 +234,39 @@ export const mergeCart = async (req: Request, res: ResType) => {
 
             map.set(key, {
                 productId: localItem.productId,
+                variantId: variant._id,
                 quantity: newQty,
-                ...(localItem.selectedColor && { selectedColor: localItem.selectedColor }),
-            });
-            dbCart.items = Array.from(map.values());
-
-            if (!dbCart.items.length) {
-                await Cart.deleteOne({ userId });
-                return res.status(200).json({
-                    status: "success",
-                    data: { items: [] },
-                    message: "Cart is empty after merge",
-                });
-            }
-
-            await dbCart.save();
-
-            const populatedItems = await populateCartItems(dbCart.items);
-
-            return res.status(200).json({
-                status: "success",
-                data: { ...dbCart.toObject(), items: populatedItems },
-                message: "Cart merged successfully",
             });
         }
+
+        dbCart.items = Array.from(map.values());
+
+        if (!dbCart.items.length) {
+            await Cart.deleteOne({ userId });
+            return res.status(200).json({
+                status: "success",
+                data: { items: [] },
+                message: "Cart is empty after merge",
+            });
+        }
+
+        await dbCart.save();
+
+        const populatedItems = await populateCartItems(dbCart.items);
+
+        return res.status(200).json({
+            status: "success",
+            data: { ...dbCart.toObject(), items: populatedItems },
+            message: "Cart merged successfully",
+        });
     } catch (error) {
         return res.status(400).json({
             status: "fail",
-            message: error?.message ?? error
+            message: error?.message ?? error,
         });
     }
+};
 
-}
 // POST /api/cart/getDetails
 export const getCartDetails = async (req: Request, res: ResType) => {
     const items: ICartItem[] = req.body.items ?? [];
@@ -280,7 +275,7 @@ export const getCartDetails = async (req: Request, res: ResType) => {
         return res.status(200).json({
             status: "success",
             data: [],
-            message: "The product with this id is not available"
+            message: "The product with this id is not available",
         });
     }
 
@@ -289,6 +284,6 @@ export const getCartDetails = async (req: Request, res: ResType) => {
     return res.status(200).json({
         status: "success",
         data: populatedItems,
-        message: "The population of the cart was successful"
+        message: "The population of the cart was successful",
     });
 };

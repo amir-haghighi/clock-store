@@ -11,6 +11,10 @@ import { useCart } from "@/hooks/useCart";
 import OrderSummary from "@/components/checkout/OrderSummary";
 import Link from "next/link";
 import CheckoutForm from "@/components/checkout/CheckoutForm";
+import { Button } from "@/components/ui/button";
+import { ShippingAddressInput } from "@/services/orderServices";
+import { useCreateOrder } from "@/hooks/useOrder";
+import { useRouter } from "next/router";
 
 // ─── main ────────────────────────────────────────────────────
 export default function CheckoutPage() {
@@ -33,7 +37,6 @@ export default function CheckoutPage() {
     // ─── Zod Schema
     const checkoutSchema = z.object({
         fullName: z.string().min(2, v("fullNameMin")),
-        phone: z.string().regex(/^(\+98|0)?9\d{9}$/, v("invalidPhone")),
         email: z.email(v("invalidEmail")),
         province: z.string().min(1, v("required")),
         city: z.string().min(2, v("required")),
@@ -47,7 +50,6 @@ export default function CheckoutPage() {
         resolver: zodResolver(checkoutSchema),
         defaultValues: {
             fullName: "",
-            phone: "",
             email: "",
             province: "",
             city: "",
@@ -71,12 +73,32 @@ export default function CheckoutPage() {
     const total = subTotal + deliveryCost;
 
     // ─── handlers  ───────────────────────────────────────────
-    async function submitHandler(values: CheckoutValues) {
+    const { mutate: createOrder, isPending } = useCreateOrder();
+    function submitHandler(formData: ShippingAddressInput) {
+        console.log({ cartItems })
+        const items = cartItems.map(item => ({
+            productId: item.productId,
+            variantId: item.variantId,
+            quantity: item.quantity,
+        }));
         setIsSubmitting(true);
-        await new Promise(r => setTimeout(r, 2000));
+        createOrder(
+            { items, shippingAddress: formData },
+            {
+                onSuccess: (order) => {
+                    setIsSubmitting(false);
+                    // router.push(`/orders/${order._id}`); // or wherever confirmation lives
+                },
+                onError: (error) => {
+                    setIsSubmitting(false);
+                    // show toast/error message
+                },
+            }
+        );
+
         // Redirect to Shaparak gateway (simulated)
         toast.success("در حال انتقال به درگاه شاپرک...");
-        setIsSubmitting(false);
+
     }
 
     return (
@@ -105,7 +127,15 @@ export default function CheckoutPage() {
                     <div className="divider-gold w-24 mt-3" />
                 </div>
 
-                <form onSubmit={form.handleSubmit(submitHandler)}>
+                <form onSubmit={form.handleSubmit(
+                    (data) => {
+                        console.log("VALID", data);
+                        submitHandler(data);
+                    },
+                    (errors) => {
+                        console.log("ERRORS", errors);
+                    }
+                )}>
                     <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
                         <CheckoutForm formatPrice={formatPrice} DELIVERY_OPTIONS={DELIVERY_OPTIONS} form={form} />
                         <OrderSummary cartItems={cartItems} deliveryCost={deliveryCost} formatPrice={formatPrice} isSubmitting={isSubmitting} total={total} subTotal={subTotal} />
